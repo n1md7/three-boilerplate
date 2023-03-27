@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import Camera from '../Camera';
+import Camera from '@/src/setup/Camera';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 export class WindowUtils {

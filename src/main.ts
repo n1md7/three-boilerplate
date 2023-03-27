@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
-import { Camera, Renderer, Scene } from './setup';
-import { Timestamp } from './setup/utils/Timestamp';
-import { Performance } from './setup/utils/Performance';
-import { WindowUtils } from './setup/utils/window.utils';
+import { Timestamp } from '@/src/setup/utils/Timestamp';
+import { Performance } from '@/src/setup/utils/Performance';
+import { WindowUtils } from '@/src/setup/utils/window.utils';
+import { Renderer, Camera, Scene } from '@/src/setup';
 
 (function setup() {
   const renderer = new Renderer();
   const camera = new Camera();
   const scene = new Scene();
   const gui = new GUI();
+
+  gui.addFolder('My options').show();
 
   const material = new THREE.MeshStandardMaterial({ wireframe: true, color: '#AA0033' });
   const geometry = new THREE.SphereGeometry(2, 32, 32);
