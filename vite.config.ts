@@ -12,6 +12,7 @@ export default defineConfig({
       '@': process.cwd(),
     },
   },
+  base: './',
   build: {
     chunkSizeWarningLimit: 700,
     sourcemap: true,
