@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:run": "electron electron.cjs",
+    "electron": "electron electron.cjs",
     "prepare": "husky install"
   },
   "devDependencies": {
