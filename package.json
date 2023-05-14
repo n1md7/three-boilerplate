@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "electron": "electron electron.cjs",
     "prepare": "husky install"
   },
   "devDependencies": {
+    "@types/electron": "^1.6.10",
     "@types/jest": "^29.5.0",
     "@types/stats.js": "^0.17.0",
     "@types/three": "^0.149.0",
+    "electron": "^24.3.0",
     "husky": "^8.0.3",
     "jest": "^29.5.0",
     "lint-staged": "^13.2.0",
