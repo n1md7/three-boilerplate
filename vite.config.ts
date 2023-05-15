@@ -18,5 +18,4 @@ export default defineConfig({
     sourcemap: true,
     assetsDir: 'assets',
   },
-  base: './',
 });
