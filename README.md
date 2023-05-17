@@ -18,4 +18,4 @@ $ npm run build
 $ npm run electron
 ```
 
-![image](https://user-images.githubusercontent.com/6734058/228045314-80cd25be-929b-44fd-8c1a-605fe8ca9a06.png)
+<img width="1431" alt="image" src="https://github.com/n1md7/three-boilerplate/assets/6734058/e2892705-7fb1-4949-8291-f9b331af3950">
