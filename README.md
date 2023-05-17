@@ -3,6 +3,7 @@
 Technologies used
 
 - Vite
+- Vitest
 - Typescript
 - Electron
 
