@@ -4,6 +4,9 @@ const createWindow = () => {
   const window = new BrowserWindow({
     width: 800,
     height: 600,
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
   return window.loadFile('./dist/index.html');
