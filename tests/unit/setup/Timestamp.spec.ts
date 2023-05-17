@@ -1,4 +1,4 @@
-import { Timestamp } from './Timestamp';
+import { Timestamp } from '@/src/setup/utils/Timestamp';
 
 describe('Timestamp', () => {
   it('should verify timestamp', async () => {

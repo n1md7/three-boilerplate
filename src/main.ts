@@ -1,24 +1,34 @@
-import * as THREE from 'three';
-import GUI from 'lil-gui';
 import { Timestamp } from '@/src/setup/utils/Timestamp';
+import { Loader } from '@/src/setup/utils/Resource.loader';
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
 import { Renderer, Camera, Scene } from '@/src/setup';
+import * as THREE from 'three';
+import GUI from 'lil-gui';
 
-(function setup() {
+(async function setup() {
   const renderer = new Renderer();
   const camera = new Camera();
+  const asset = new Loader();
   const scene = new Scene();
   const gui = new GUI();
 
-  gui.addFolder('My options').show();
+  const ducky = await asset.load('3d/duck.gltf');
+
+  gui
+    .addFolder('Rubber Ducky')
+    .add(ducky.scene.rotation, 'y')
+    .step(Math.PI / 180)
+    .min(0)
+    .max(Math.PI)
+    .name('rotationY')
+    .show();
 
   const material = new THREE.MeshStandardMaterial({ wireframe: true, color: '#AA0033' });
   const geometry = new THREE.SphereGeometry(2, 32, 32);
   const sphere = new THREE.Mesh(geometry, material);
 
-  sphere.position.y = 2;
-  scene.add(sphere);
+  scene.add(sphere, ducky.scene);
 
   {
     const FPS = 60;
@@ -37,8 +47,9 @@ import { Renderer, Camera, Scene } from '@/src/setup';
       if (timestamp.delta >= DELAY) {
         renderer.render(scene, camera);
 
-        sphere.position.x = Math.sin(elapsedTime) * Math.PI;
-        sphere.position.z = Math.cos(elapsedTime) * Math.PI;
+        ducky.scene.position.x = Math.sin(elapsedTime) * Math.PI;
+        ducky.scene.position.z = Math.cos(elapsedTime) * Math.PI;
+        ducky.scene.rotation.y = elapsedTime;
 
         timestamp.update();
       }
@@ -48,4 +59,4 @@ import { Renderer, Camera, Scene } from '@/src/setup';
       performance.end();
     })();
   }
-})();
+})().catch(console.error);
