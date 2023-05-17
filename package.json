@@ -6,6 +6,7 @@
     "email": "b.kodua@gmail.com",
     "url": "https://github.com/n1md7"
   },
+  "main": "electron-start.cjs",
   "bugs": {
     "url": "https://github.com/n1md7/three-boilerplate/issues"
   },
@@ -17,14 +18,23 @@
     "test": "vitest --mode=test --no-watch",
     "preview": "vite preview",
     "format": "npx lint-staged",
-    "electron": "electron electron.cjs",
-    "prepare": "husky install"
+    "electron": "electron electron-start.cjs",
+    "prepare": "husky install",
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^6.1.1",
+    "@electron-forge/maker-deb": "^6.1.1",
+    "@electron-forge/maker-rpm": "^6.1.1",
+    "@electron-forge/maker-squirrel": "^6.1.1",
+    "@electron-forge/maker-zip": "^6.1.1",
+    "@electron-forge/plugin-vite": "^6.1.1",
+    "electron": "^24.3.0",
     "@types/jest": "^29.5.0",
     "@types/stats.js": "^0.17.0",
     "@types/three": "^0.149.0",
-    "electron": "^24.3.0",
     "husky": "^8.0.3",
     "jsdom": "^22.0.0",
     "lint-staged": "^13.2.0",
@@ -37,6 +47,7 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.0",
     "lil-gui": "^0.18.1",
     "stats.js": "^0.17.0",
     "three": "^0.150.1"
