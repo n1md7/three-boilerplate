@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 18.15.0
           cache: 'npm'
+        # Git-hook Husky not required in GH environment
+      - name: Uninstall Husky and scripts.prepare
+        run: npm pkg delete scripts.prepare
       - name: Install dependencies
         run: npm ci --production
       - name: Build static files
