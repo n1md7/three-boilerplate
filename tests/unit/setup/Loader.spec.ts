@@ -1,4 +1,4 @@
-import { Loader } from '../../../src/setup/utils/Resource.loader';
+import { Loader } from '../../../src/setup/utils/Loader';
 
 describe('Loader', () => {
   it('should be defined', () => {

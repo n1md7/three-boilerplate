@@ -1,8 +1,8 @@
 import { Timestamp } from '@/src/setup/utils/Timestamp';
-import { Loader } from '@/src/setup/utils/Resource.loader';
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
 import { Renderer, Camera, Scene } from '@/src/setup';
+import { Loader } from '@/src/setup/utils/Loader';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 
