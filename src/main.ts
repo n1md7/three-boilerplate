@@ -17,11 +17,11 @@ import GUI from 'lil-gui';
 
   gui
     .addFolder('Rubber Ducky')
-    .add(ducky.scene.rotation, 'y')
+    .add(ducky.scene.rotation, 'z')
     .step(Math.PI / 180)
     .min(0)
     .max(Math.PI)
-    .name('rotationY')
+    .name('rotationZ')
     .show();
 
   const material = new THREE.MeshStandardMaterial({ wireframe: true, color: '#AA0033' });
