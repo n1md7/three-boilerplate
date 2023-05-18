@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 18.15.0
           cache: 'npm'
-
+      - name: Install dependencies
+        run: npm ci
+      - name: Build static files
+        run: npm run build --if-present
       - name: Build/release Electron app {{ matrix.os }}
         run: npm run package
