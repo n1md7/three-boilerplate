@@ -23,5 +23,3 @@ jobs:
         run: npm run build --if-present
       - name: Build/release Electron app ${{ matrix.os }}
         run: npm run make
-      - name: Show content
-        run: ls -la out/make/zip
