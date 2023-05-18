@@ -21,5 +21,7 @@ jobs:
         run: npm ci
       - name: Build static files
         run: npm run build --if-present
-      - name: Build/release Electron app {{ matrix.os }}
-        run: npm run package
+      - name: Build/release Electron app ${{ matrix.os }}
+        run: npm run make
+      - name: Show content
+        run: ls -la out/make/zip
