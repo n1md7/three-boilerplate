@@ -1,10 +1,12 @@
-name: Publish to GitHub pages
+name: Publish to GitHub Pages
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
-    branches: [master]
+    branches:
+      - master
 
 jobs:
   publish:
@@ -21,20 +23,9 @@ jobs:
         run: npm ci
       - name: Build static files
         run: npm run build --if-present
-
-      - name: Init new repo in dist folder and commit generated files
-        run: |
-          cd dist
-          git init
-          git add -A
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -m 'deploy'
-
-      - name: Force push to destination branch
-        uses: ad-m/github-push-action@master
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          force_with_lease: true
-          directory: ./dist
-          branch: gh-pages
+          publish_dir: ./dist
+          publish_branch: gh-pages
