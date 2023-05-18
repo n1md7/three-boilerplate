@@ -38,4 +38,3 @@ jobs:
           force_with_lease: true
           directory: ./dist
           branch: gh-pages
-          force: true
