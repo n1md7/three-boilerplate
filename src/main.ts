@@ -2,22 +2,46 @@ import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
 import { Renderer, Camera, Scene } from '@/src/setup';
-import { Loader } from '@/src/setup/utils/Loader';
+import { MyGLTFLoader, MyTextureLoader } from '@/src/setup/utils/Loader';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
+import { Octree } from 'three/examples/jsm/math/Octree.js';
+import { Player } from '@/src/first-person/Player';
+import { FlashLight } from '@/src/first-person/components/FlashLight';
 
 (async function setup() {
+  const aGLTF = new MyGLTFLoader();
+  const aIMAGE = new MyTextureLoader();
+  const [duckGLTF, groundTexture, boxTexture, skyGLTF, desertEagleGLTF] = await Promise.all([
+    aGLTF.load('3d/duck.gltf'),
+    aIMAGE.load('images/checker.png'),
+    aIMAGE.load('images/box.png'),
+    aGLTF.load('3d/sky_pano/scene.gltf'),
+    aGLTF.load('3d/desert-eagle-with-hands/scene.gltf'),
+  ]);
+
+  const gui = new GUI();
+  const world = new Octree();
   const renderer = new Renderer();
   const camera = new Camera();
-  const asset = new Loader();
-  const scene = new Scene();
-  const gui = new GUI();
+  const scene = new Scene(gui, world);
 
-  const ducky = await asset.load('3d/duck.gltf');
+  const flashlight = new FlashLight(gui);
+  const ducky = duckGLTF.scene;
+  const player = new Player(camera, world, desertEagleGLTF, flashlight);
+
+  scene
+    .addLight()
+    .addGround(groundTexture)
+    .addSky(skyGLTF)
+    .addAxisHelper()
+    .addGridHelper()
+    .addStairs(boxTexture)
+    .addBoxes(boxTexture, 64);
 
   gui
     .addFolder('Rubber Ducky')
-    .add(ducky.scene.rotation, 'z')
+    .add(ducky.rotation, 'z')
     .step(Math.PI / 180)
     .min(0)
     .max(Math.PI)
@@ -28,11 +52,20 @@ import GUI from 'lil-gui';
   const geometry = new THREE.SphereGeometry(2, 32, 32);
   const sphere = new THREE.Mesh(geometry, material);
 
-  scene.add(sphere, ducky.scene);
+  scene.add(sphere, ducky, desertEagleGLTF.scene, flashlight, flashlight.target);
+
+  world.fromGraphNode(sphere);
+  ducky.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      world.fromGraphNode(child);
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
 
   {
     const FPS = 60;
-    const DELAY = 1000 / FPS;
+    const DELAY_MS = 1000 / FPS; // millis
     const clock = new THREE.Clock();
     const performance = new Performance();
     const timestamp = new Timestamp();
@@ -43,18 +76,20 @@ import GUI from 'lil-gui';
     })();
     (function gameLoop() {
       performance.start();
+      const delta = clock.getDelta();
       const elapsedTime = clock.getElapsedTime();
-      if (timestamp.delta >= DELAY) {
-        renderer.render(scene, camera);
+      if (timestamp.delta >= DELAY_MS) {
+        player.update(delta);
+        if (camera.position.y <= -25) player.reset();
 
-        ducky.scene.position.x = Math.sin(elapsedTime) * Math.PI;
-        ducky.scene.position.z = Math.cos(elapsedTime) * Math.PI;
-        ducky.scene.rotation.y = elapsedTime;
+        ducky.position.x = Math.sin(elapsedTime) * Math.PI;
+        ducky.position.z = Math.cos(elapsedTime) * Math.PI;
+        ducky.rotation.y = elapsedTime;
 
         timestamp.update();
+        renderer.render(scene, camera);
       }
 
-      windowUtils.controlDumpingUpdate();
       requestAnimationFrame(gameLoop);
       performance.end();
     })();
