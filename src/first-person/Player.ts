@@ -49,7 +49,8 @@ export class Player {
     this.crosshairController = CrosshairController.getInstance();
 
     this.subscribe();
-    this.playerVelocity.z = 15; // Push back, TESTING
+    // Set Player Y to be 30 units above the ground
+    this.playerBody.translate(new Vector3(0, 30, 0));
   }
 
   subscribe() {
@@ -155,11 +156,8 @@ export class Player {
   }
 
   reset() {
-    this.playerBody.start.set(0, 0.35, 0);
-    this.playerBody.end.set(0, 1, 0);
-    this.playerBody.radius = 0.35;
-    this.camera.position.copy(this.playerBody.end);
-    this.camera.rotation.set(0, 0, 0);
+    const center = new Vector3(0, 10, 0);
+    this.playerBody.translate(center.sub(this.playerBody.end));
   }
 
   update(delta: number) {

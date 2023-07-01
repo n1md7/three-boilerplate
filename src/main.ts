@@ -8,6 +8,7 @@ import GUI from 'lil-gui';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Player } from '@/src/first-person/Player';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
+import '@/src/styles/style.css';
 
 (async function setup() {
   const aGLTF = new MyGLTFLoader();
@@ -55,13 +56,6 @@ import { FlashLight } from '@/src/first-person/components/FlashLight';
   scene.add(sphere, ducky, desertEagleGLTF.scene, flashlight, flashlight.target);
 
   world.fromGraphNode(sphere);
-  ducky.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      world.fromGraphNode(child);
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
 
   {
     const FPS = 60;
