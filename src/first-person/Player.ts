@@ -81,19 +81,12 @@ export class Player {
 
   private evaluateUserInput(deltaTime: number) {
     const speedDelta = this.getSpeedDelta(deltaTime);
+    const { forward, left, backward, right } = this.inputController.says.move;
 
-    if (this.inputController.says.move.forward) {
-      this.playerVelocity.add(this.getForwardVector().multiplyScalar(speedDelta));
-    }
-    if (this.inputController.says.move.backward) {
-      this.playerVelocity.add(this.getForwardVector().multiplyScalar(-speedDelta));
-    }
-    if (this.inputController.says.move.left) {
-      this.playerVelocity.add(this.getSideVector().multiplyScalar(-speedDelta));
-    }
-    if (this.inputController.says.move.right) {
-      this.playerVelocity.add(this.getSideVector().multiplyScalar(speedDelta));
-    }
+    if (forward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(speedDelta));
+    if (backward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(-speedDelta));
+    if (left) this.playerVelocity.add(this.getSideVector().multiplyScalar(-speedDelta));
+    if (right) this.playerVelocity.add(this.getSideVector().multiplyScalar(speedDelta));
 
     if (this.playerIsGrounded && this.inputController.says.jump) {
       this.playerVelocity.y = this.playerJumpVelocity;
