@@ -64,12 +64,9 @@ export class Player {
     this.inputController.subscribe();
     this.mouseController.subscribe();
 
-    this.inputController.addEventListener('toggle-flashlight', () => {
-      this.flashlight.toggle();
-    });
-    this.mouseController.addEventListener('shoot', () => {
-      this.weapon.shoot();
-    });
+    this.inputController.addEventListener('toggle-flashlight', () => this.flashlight.toggle());
+    this.mouseController.addEventListener('weapon-shoot', () => this.weapon.shoot());
+    this.inputController.addEventListener('weapon-reload', () => this.weapon.reload());
   }
 
   reset() {

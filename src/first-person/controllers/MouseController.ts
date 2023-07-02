@@ -36,7 +36,7 @@ export class MouseController extends EventTarget {
 
   private mouseReleaseHandler() {
     if (document.pointerLockElement !== null) {
-      this.dispatchEvent(new Event('shoot'));
+      this.dispatchEvent(new Event('weapon-shoot'));
     }
   }
 }

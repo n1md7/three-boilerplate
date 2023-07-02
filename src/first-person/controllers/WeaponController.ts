@@ -27,12 +27,16 @@ export class WeaponController {
     }
   }
 
-  get weapon() {
+  private get weapon() {
     return this.weapons[this.weaponIndex];
   }
 
   shoot() {
     this.weapon.shoot();
+  }
+
+  reload() {
+    this.weapon.reload();
   }
 
   update(delta: number) {

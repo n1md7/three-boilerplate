@@ -10,9 +10,9 @@ export class DesertEagle extends Weapon {
       walk: 'deagle_skeleton|idle1', // Missing dedicated animation
     });
 
-    this.setFireRate(1);
+    this.setFireRate(800);
     this.setDamageRange(50);
-    this.setReloadTime(3000);
+    this.setReloadTime(1500);
     this.setMagazineSize(7);
   }
 }

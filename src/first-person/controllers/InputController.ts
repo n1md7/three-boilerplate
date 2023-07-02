@@ -54,6 +54,8 @@ export class InputController extends EventTarget {
       case 'KeyF':
         this.dispatchEvent(new Event('toggle-flashlight'));
         break;
+      case 'KeyR':
+        this.dispatchEvent(new Event('weapon-reload'));
     }
   }
 

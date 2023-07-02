@@ -11,11 +11,11 @@ export abstract class Weapon {
   protected readonly walkAnimation: AnimationAction;
   protected readonly animationMixer: AnimationMixer;
 
-  protected fireRate = 1; // 1sps (Shot Per Second)
-  protected reloadTime = 3000; // 3000ms
-  protected magazineSize = 7; // 7 bullets
+  protected fireRate = 1000; // 1000ms delay between shots
+  protected reloadTime = 3000; // 3000ms reload time
+  protected magazineSize = 7; // 7 bullets per magazine
   protected bullets = 7; // Current bullets in magazine
-  protected damageRange = 100; // 100m effective range
+  protected damageRange = 100; // 100m effective range (m or blocks?)
 
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
@@ -32,11 +32,14 @@ export abstract class Weapon {
   shoot(): void {
     if (this.reloading) return;
     if (this.bullets === 0) return this.reload();
-    if (this.getShootDelta() < 1000 / this.fireRate) return;
+    if (this.getShootDelta() < this.fireRate) return;
 
     this.decrementBullets();
     this.updateDelta();
-    this.shootAnimation.reset();
+
+    this.resetAnimations();
+    this.stopAnimations();
+
     this.shootAnimation.play();
   }
 
@@ -45,8 +48,8 @@ export abstract class Weapon {
     if (this.bullets === this.magazineSize) return;
 
     this.reloading = true;
-
     this.resetAnimations();
+    this.stopAnimations();
 
     this.reloadAnimation.play();
 
@@ -62,39 +65,26 @@ export abstract class Weapon {
 
   setBullets(bullets: number) {
     this.bullets = bullets;
-    return this;
   }
 
   setMagazineSize(magazineSize: number) {
     this.magazineSize = magazineSize;
-    return this;
   }
 
   setReloadTime(reloadTime: number) {
     this.reloadTime = reloadTime;
     this.reloadAnimation.setDuration(reloadTime / 1000);
-    this.reloadAnimation.setEffectiveTimeScale(reloadTime / 1000);
-    this.reloadAnimation.setEffectiveWeight(1);
     this.reloadAnimation.setLoop(LoopOnce, 1);
-    this.reloadAnimation.clampWhenFinished = true;
-
-    return this;
-  }
-
-  setDamageRange(range: number) {
-    this.damageRange = range;
-    return this;
   }
 
   setFireRate(fireRate: number) {
     this.fireRate = fireRate;
-    this.shootAnimation.setDuration(1 / fireRate);
-    this.shootAnimation.setEffectiveTimeScale(fireRate);
-    this.shootAnimation.setEffectiveWeight(1);
+    this.shootAnimation.setDuration(fireRate / 1000);
     this.shootAnimation.setLoop(LoopOnce, 1);
-    this.shootAnimation.clampWhenFinished = true;
+  }
 
-    return this;
+  setDamageRange(range: number) {
+    this.damageRange = range;
   }
 
   protected getShootDelta() {
