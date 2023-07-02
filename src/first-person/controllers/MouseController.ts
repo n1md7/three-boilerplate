@@ -1,15 +1,12 @@
 import { Camera } from '@/src/setup';
-import { AnimationAction, LoopOnce } from 'three';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
 
-export class MouseController {
+export class MouseController extends EventTarget {
   private readonly mouseSensitivity = 0.002;
 
-  constructor(
-    private readonly camera: Camera,
-    private readonly shootAnimation: AnimationAction,
-    private readonly flashlight: FlashLight
-  ) {}
+  constructor(private readonly camera: Camera, private readonly flashlight: FlashLight) {
+    super();
+  }
 
   subscribe() {
     document.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
@@ -30,20 +27,14 @@ export class MouseController {
     this.camera.rotation.y -= movementX * this.mouseSensitivity;
     this.camera.rotation.x -= movementY * this.mouseSensitivity;
 
-    this.flashlight.adjust(this.camera);
+    this.flashlight.adjustBy(this.camera);
   }
 
   private mouseClickHandler() {}
 
   private mouseReleaseHandler() {
     if (document.pointerLockElement !== null) {
-      // TODO: do gameplay stuff
-
-      this.shootAnimation.loop = LoopOnce;
-
-      this.shootAnimation.reset();
-
-      this.shootAnimation.play();
+      this.dispatchEvent(new Event('shoot'));
     }
   }
 }

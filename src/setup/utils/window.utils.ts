@@ -1,8 +1,8 @@
-import * as THREE from 'three';
 import Camera from '@/src/setup/Camera';
+import { Renderer } from 'three';
 
 export class WindowUtils {
-  constructor(private readonly renderer: THREE.Renderer, private readonly camera: Camera) {
+  constructor(private readonly renderer: Renderer, private readonly camera: Camera) {
     this.resize = this.resize.bind(this);
   }
 

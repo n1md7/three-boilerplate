@@ -1,21 +1,19 @@
-import { Timestamp } from '@/src/setup/utils/Timestamp';
+import { MyGLTFLoader, MyTextureLoader } from '@/src/setup/utils/Loader';
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
-import { Renderer, Camera, Scene } from '@/src/setup';
-import { MyGLTFLoader, MyTextureLoader } from '@/src/setup/utils/Loader';
-import * as THREE from 'three';
-import GUI from 'lil-gui';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
+import { Timestamp } from '@/src/setup/utils/Timestamp';
+import { Renderer, Camera, Scene } from '@/src/setup';
 import { Player } from '@/src/first-person/Player';
-import { FlashLight } from '@/src/first-person/components/FlashLight';
+import { Debug } from '@/src/setup/utils/common';
+import { Clock } from 'three';
+import GUI from 'lil-gui';
 import '@/src/styles/style.css';
-import { WeaponController } from '@/src/first-person/controllers/WeaponController';
 
 (async function setup() {
   const aGLTF = new MyGLTFLoader();
   const aIMAGE = new MyTextureLoader();
-  const [duckGLTF, groundTexture, boxTexture, skyGLTF, desertEagleGLTF] = await Promise.all([
-    aGLTF.load('3d/duck.gltf'),
+  const [groundTexture, boxTexture, skyGLTF, desertEagleGLTF] = await Promise.all([
     aIMAGE.load('images/checker.png'),
     aIMAGE.load('images/box.png'),
     aGLTF.load('3d/sky_pano/scene.gltf'),
@@ -27,13 +25,12 @@ import { WeaponController } from '@/src/first-person/controllers/WeaponControlle
   const renderer = new Renderer();
   const camera = new Camera();
   const scene = new Scene(gui, world);
-  const weapon = new WeaponController(gui.addFolder('WeaponController'));
 
-  weapon.scene.add(desertEagleGLTF.scene);
+  gui.show(Debug.enabled());
 
-  const flashlight = new FlashLight(gui);
-  const ducky = duckGLTF.scene;
-  const player = new Player(camera, world, desertEagleGLTF, flashlight);
+  const player = new Player(camera, world, scene, gui.addFolder('Player'), {
+    pistol: desertEagleGLTF,
+  });
 
   scene
     .addLight()
@@ -44,18 +41,10 @@ import { WeaponController } from '@/src/first-person/controllers/WeaponControlle
     .addStairs(boxTexture)
     .addBoxes(boxTexture, 64);
 
-  const material = new THREE.MeshStandardMaterial({ wireframe: true, color: '#AA0033' });
-  const geometry = new THREE.SphereGeometry(2, 32, 32);
-  const sphere = new THREE.Mesh(geometry, material);
-
-  scene.add(sphere, ducky, flashlight, flashlight.target);
-
-  world.fromGraphNode(sphere);
-
   {
     const FPS = 60;
     const DELAY_MS = 1000 / FPS; // millis
-    const clock = new THREE.Clock();
+    const clock = new Clock();
     const performance = new Performance();
     const timestamp = new Timestamp();
     const windowUtils = new WindowUtils(renderer, camera);
@@ -66,14 +55,8 @@ import { WeaponController } from '@/src/first-person/controllers/WeaponControlle
     (function gameLoop() {
       performance.start();
       const delta = clock.getDelta();
-      const elapsedTime = clock.getElapsedTime();
       if (timestamp.delta >= DELAY_MS) {
-        player.update(delta);
         if (camera.position.y <= -25) player.reset();
-
-        ducky.position.x = Math.sin(elapsedTime) * Math.PI;
-        ducky.position.z = Math.cos(elapsedTime) * Math.PI;
-        ducky.rotation.y = elapsedTime;
 
         timestamp.update();
 
@@ -82,10 +65,12 @@ import { WeaponController } from '@/src/first-person/controllers/WeaponControlle
 
         renderer.clearDepth(); // Clear only the depth buffer
 
-        camera.getWorldPosition(weapon.camera.position);
-        camera.getWorldQuaternion(weapon.camera.quaternion);
+        camera.getWorldPosition(player.weapon.camera.position);
+        camera.getWorldQuaternion(player.weapon.camera.quaternion);
 
-        renderer.render(weapon.scene, weapon.camera);
+        player.update(delta);
+
+        renderer.render(player.weapon.scene, player.weapon.camera);
       }
 
       requestAnimationFrame(gameLoop);

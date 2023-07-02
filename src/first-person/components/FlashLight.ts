@@ -24,7 +24,7 @@ export class FlashLight extends SpotLight {
     Debug.enabled() && this.addGUI();
   }
 
-  adjust(camera: Camera) {
+  adjustBy(camera: Camera) {
     // INFO: Move and rotate flashlight with camera
     this.position.copy(camera.position);
 
@@ -42,15 +42,13 @@ export class FlashLight extends SpotLight {
   }
 
   private addGUI() {
-    const folder = this.gui.addFolder('Flashlight');
-    folder.add(this, 'intensity', 0, 20, 0.01);
-    // color
-    folder.addColor(this, 'color');
-    folder.add(this, 'distance', 0, 100, 0.01);
-    folder.add(this, 'angle', 0, Math.PI / 2, 0.01);
-    folder.add(this, 'penumbra', 0, 1, 0.01);
-    folder.add(this.shadow.camera, 'near', 0, 1000, 0.01);
-    folder.add(this.shadow.camera, 'far', 1000, 5000, 0.01);
-    folder.add(this.shadow.camera, 'fov', 0, 180, 0.01);
+    this.gui.add(this, 'intensity', 0, 20, 0.01);
+    this.gui.addColor(this, 'color');
+    this.gui.add(this, 'distance', 0, 100, 0.01);
+    this.gui.add(this, 'angle', 0, Math.PI / 2, 0.01);
+    this.gui.add(this, 'penumbra', 0, 1, 0.01);
+    this.gui.add(this.shadow.camera, 'near', 0, 1000, 0.01);
+    this.gui.add(this.shadow.camera, 'far', 1000, 5000, 0.01);
+    this.gui.add(this.shadow.camera, 'fov', 0, 180, 0.01);
   }
 }

@@ -1,18 +1,20 @@
-import { PerspectiveCamera, Vector3, AnimationMixer, AnimationAction } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 import { Capsule } from 'three/examples/jsm/math/Capsule';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { InputController } from '@/src/first-person/controllers/InputController';
 import { MouseController } from '@/src/first-person/controllers/MouseController';
-import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
+import { WeaponController } from '@/src/first-person/controllers/WeaponController';
+import { FlashLight } from '@/src/first-person/components/FlashLight';
+import { Scene } from '@/src/setup';
+import GUI from 'lil-gui';
 
-enum WeaponAnimation {
-  IDLE = 'deagle_skeleton|idle1',
-  SHOOT = 'deagle_skeleton|shoot1',
-  RELOAD = 'deagle_skeleton|reload',
-  WALK = 'deagle_skeleton|walk1',
-}
+export type WeaponName = 'DesertEagle' | 'M4A1' | 'AK47' | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife';
+export type WeaponType = 'pistol'; // | 'rifle' | 'smg' | 'sniper' | 'heavy' | 'knife';
+export type WeaponFireMode = 'auto' | 'burst' | 'semi';
+export type WeaponSound = 'shoot' | 'reload' | 'empty' | 'equip' | 'unequip';
+export type Assets = Record<WeaponType, GLTF>;
 
 export class Player {
   private readonly GRAVITY = 30;
@@ -23,9 +25,9 @@ export class Player {
   private readonly playerVelocity: Vector3;
   private readonly inputController: InputController;
   private readonly mouseController: MouseController;
-  private readonly animationMixer: AnimationMixer;
-  private readonly shootAnimation: AnimationAction;
+  private readonly flashlight: FlashLight;
   private readonly crosshairController: CrosshairController;
+  private readonly weaponController: WeaponController;
 
   private playerIsGrounded = false; // On the floor (touching)
   private accuracy = 100;
@@ -33,22 +35,29 @@ export class Player {
   constructor(
     private readonly camera: PerspectiveCamera,
     private readonly world: Octree,
-    private readonly weapon: GLTF,
-    private readonly flashlight: FlashLight
+    private readonly scene: Scene,
+    private readonly gui: GUI,
+    private readonly assets: Assets
   ) {
+    const start = new Vector3(0, 0.35, 0);
+    const end = new Vector3(0, 1, 0);
+    this.playerBody = new Capsule(start, end, 0.35);
     this.playerVelocity = new Vector3();
-    this.playerBody = new Capsule(new Vector3(0, 0.35, 0), new Vector3(0, 1, 0), 0.35);
-    this.animationMixer = new AnimationMixer(weapon.scene);
-    this.shootAnimation = this.animationMixer.clipAction(
-      this.weapon.animations.find(({ name }) => name === WeaponAnimation.SHOOT)!
-    );
-    this.mouseController = new MouseController(camera, this.shootAnimation, this.flashlight);
+    this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets);
     this.inputController = new InputController();
+    this.mouseController = new MouseController(camera, this.flashlight);
     this.crosshairController = CrosshairController.getInstance();
+
+    this.scene.add(this.flashlight, this.flashlight.target);
 
     this.subscribe();
     // Set Player Y to be 30 units above the ground
     this.playerBody.translate(new Vector3(0, 30, 0));
+  }
+
+  get weapon() {
+    return this.weaponController;
   }
 
   subscribe() {
@@ -57,6 +66,9 @@ export class Player {
 
     this.inputController.addEventListener('toggle-flashlight', () => {
       this.flashlight.toggle();
+    });
+    this.mouseController.addEventListener('shoot', () => {
+      this.weapon.shoot();
     });
   }
 
@@ -77,7 +89,7 @@ export class Player {
       this.updatePlayer(deltaTime);
     }
     this.updateCrosshair();
-    this.animationMixer.update(delta);
+    this.weapon.update(delta);
   }
 
   private getSideVector(vector: Vector3) {
@@ -153,7 +165,7 @@ export class Player {
     this.camera.position.copy(this.playerBody.end);
 
     // Update the flashlight position
-    this.flashlight.adjust(this.camera);
+    this.flashlight.adjustBy(this.camera);
 
     // Calculate the offset of the weapon from the camera
     const weaponOffset = new Vector3(0.32, -0.38, -1.1);

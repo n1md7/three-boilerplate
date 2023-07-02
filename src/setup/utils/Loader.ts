@@ -1,7 +1,7 @@
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import * as THREE from 'three';
 import { delay } from '@/src/setup/utils/common';
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
+import { ImageLoader, LoadingManager, Texture, TextureLoader } from 'three';
 
 const assetLoaderView = document.querySelector('#loading')! as HTMLDivElement;
 const canvas = document.querySelector('#canvas')! as HTMLCanvasElement;
@@ -10,7 +10,7 @@ const updateProgress = (progress: number) => {
   assetLoaderView.innerHTML = `Loading... <br/><br/> ${progress.toFixed(2)}%`;
 };
 
-export const manager = new THREE.LoadingManager(
+export const manager = new LoadingManager(
   async () => {
     console.log('INFO: Asset loading complete');
     console.log('INFO: Starting game...');
@@ -62,10 +62,10 @@ export class MyGLTFLoader {
 }
 
 export class MyImageLoader {
-  private loader: THREE.ImageLoader;
+  private loader: ImageLoader;
 
   constructor() {
-    this.loader = new THREE.ImageLoader(manager);
+    this.loader = new ImageLoader(manager);
   }
 
   load(path: string): Promise<HTMLImageElement> {
@@ -81,17 +81,17 @@ export class MyImageLoader {
 }
 
 export class MyTextureLoader {
-  private loader: THREE.TextureLoader;
+  private loader: TextureLoader;
 
   constructor() {
-    this.loader = new THREE.TextureLoader(manager);
+    this.loader = new TextureLoader(manager);
   }
 
-  load(path: string): Promise<THREE.Texture> {
+  load(path: string): Promise<Texture> {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
-        (resource) => resolve(resource as THREE.Texture),
+        (resource) => resolve(resource as Texture),
         undefined,
         (error) => reject(error)
       );

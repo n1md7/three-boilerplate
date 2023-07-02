@@ -1,6 +1,6 @@
-import * as THREE from 'three';
+import { PerspectiveCamera } from 'three';
 
-export default class Camera extends THREE.PerspectiveCamera {
+export default class Camera extends PerspectiveCamera {
   constructor() {
     super(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
