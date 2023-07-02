@@ -21,7 +21,6 @@ export class Player {
 
   private readonly playerBody: Capsule;
   private readonly playerVelocity: Vector3;
-  private readonly playerDirection: Vector3;
   private readonly inputController: InputController;
   private readonly mouseController: MouseController;
   private readonly animationMixer: AnimationMixer;
@@ -38,7 +37,6 @@ export class Player {
     private readonly flashlight: FlashLight
   ) {
     this.playerVelocity = new Vector3();
-    this.playerDirection = new Vector3();
     this.playerBody = new Capsule(new Vector3(0, 0.35, 0), new Vector3(0, 1, 0), 0.35);
     this.animationMixer = new AnimationMixer(weapon.scene);
     this.shootAnimation = this.animationMixer.clipAction(
@@ -62,31 +60,67 @@ export class Player {
     });
   }
 
-  getSideVector() {
-    this.camera.getWorldDirection(this.playerDirection);
-    this.playerDirection.y = 0;
-    this.playerDirection.normalize();
-    this.playerDirection.cross(this.camera.up);
-
-    return this.playerDirection;
+  reset() {
+    const center = new Vector3(0, 10, 0);
+    this.playerBody.translate(center.sub(this.playerBody.end));
   }
 
-  getForwardVector() {
-    this.camera.getWorldDirection(this.playerDirection);
-    this.playerDirection.y = 0;
-    this.playerDirection.normalize();
+  update(delta: number) {
+    const deltaTime = Math.min(0.05, delta) / this.STEPS_PER_FRAME;
 
-    return this.playerDirection;
+    // INFO: To enhance collision detection accuracy,
+    // we divide the collision checking process into sub-steps.
+    // This approach helps mitigate the potential issue of objects
+    // passing through each other too rapidly to be detected reliably.
+    for (let i = 0; i < this.STEPS_PER_FRAME; i++) {
+      this.evaluateUserInput(deltaTime);
+      this.updatePlayer(deltaTime);
+    }
+    this.updateCrosshair();
+    this.animationMixer.update(delta);
+  }
+
+  private getSideVector(vector: Vector3) {
+    this.camera.getWorldDirection(vector);
+    vector.y = 0;
+    vector.normalize();
+    vector.cross(this.camera.up);
+
+    return vector;
+  }
+
+  private getForwardVector(vector: Vector3) {
+    this.camera.getWorldDirection(vector);
+    vector.y = 0;
+    vector.normalize();
+
+    return vector;
   }
 
   private evaluateUserInput(deltaTime: number) {
+    const { forward, backward } = this.inputController.says.move;
+    const { left, right } = this.inputController.says.move;
     const speedDelta = this.getSpeedDelta(deltaTime);
-    const { forward, left, backward, right } = this.inputController.says.move;
 
-    if (forward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(speedDelta));
-    if (backward) this.playerVelocity.add(this.getForwardVector().multiplyScalar(-speedDelta));
-    if (left) this.playerVelocity.add(this.getSideVector().multiplyScalar(-speedDelta));
-    if (right) this.playerVelocity.add(this.getSideVector().multiplyScalar(speedDelta));
+    const forwardVector = this.getForwardVector(new Vector3());
+    const sideVector = this.getSideVector(new Vector3());
+
+    // Makes sure that diagonal movement isn't faster as it would be otherwise
+    const velocity = left || right ? speedDelta * 0.707 : speedDelta;
+    if (forward) {
+      // Forward movement is fastest as long as left or right aren't pressed
+      this.playerVelocity.add(forwardVector.multiplyScalar(velocity));
+      if (left) this.playerVelocity.add(sideVector.multiplyScalar(-velocity));
+      if (right) this.playerVelocity.add(sideVector.multiplyScalar(velocity));
+    } else if (backward) {
+      this.playerVelocity.add(forwardVector.multiplyScalar(-velocity));
+      if (left) this.playerVelocity.add(sideVector.multiplyScalar(-velocity));
+      if (right) this.playerVelocity.add(sideVector.multiplyScalar(velocity));
+    } else {
+      // Sideways movement a bit slower
+      if (left) this.playerVelocity.add(sideVector.multiplyScalar(-speedDelta * 0.9));
+      if (right) this.playerVelocity.add(sideVector.multiplyScalar(speedDelta * 0.9));
+    }
 
     if (this.playerIsGrounded && this.inputController.says.jump) {
       this.playerVelocity.y = this.playerJumpVelocity;
@@ -146,26 +180,6 @@ export class Player {
 
       this.playerBody.translate(result.normal.multiplyScalar(result.depth));
     }
-  }
-
-  reset() {
-    const center = new Vector3(0, 10, 0);
-    this.playerBody.translate(center.sub(this.playerBody.end));
-  }
-
-  update(delta: number) {
-    const deltaTime = Math.min(0.05, delta) / this.STEPS_PER_FRAME;
-
-    // INFO: To enhance collision detection accuracy,
-    // we divide the collision checking process into sub-steps.
-    // This approach helps mitigate the potential issue of objects
-    // passing through each other too rapidly to be detected reliably.
-    for (let i = 0; i < this.STEPS_PER_FRAME; i++) {
-      this.evaluateUserInput(deltaTime);
-      this.updatePlayer(deltaTime);
-    }
-    this.updateCrosshair();
-    this.animationMixer.update(delta);
   }
 
   private updateCrosshair() {
