@@ -13,12 +13,15 @@ import '@/src/styles/style.css';
 (async function setup() {
   const aGLTF = new MyGLTFLoader();
   const aIMAGE = new MyTextureLoader();
-  const [groundTexture, boxTexture, skyGLTF, desertEagleGLTF] = await Promise.all([
+  const [groundTexture, boxTexture, skyGLTF, ...guns] = await Promise.all([
     aIMAGE.load('images/checker.png'),
     aIMAGE.load('images/box.png'),
     aGLTF.load('3d/sky_pano/scene.gltf'),
-    aGLTF.load('3d/desert-eagle-with-hands/scene.gltf'),
+    aGLTF.load('3d/desert-eagle/scene.gltf'),
+    aGLTF.load('3d/m4a1/scene.gltf'),
   ]);
+
+  const [desertEagleGLTF, m4a1GLTF] = guns;
 
   const gui = new GUI();
   const world = new Octree();
@@ -30,6 +33,7 @@ import '@/src/styles/style.css';
 
   const player = new Player(camera, world, scene, gui.addFolder('Player'), {
     pistol: desertEagleGLTF,
+    rifle: m4a1GLTF,
   });
 
   scene

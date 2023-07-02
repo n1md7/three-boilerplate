@@ -1,5 +1,6 @@
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
-import { AnimationAction, AnimationMixer, LoopOnce } from 'three';
+import { AnimationAction, AnimationMixer, LoopOnce, Vector3 } from 'three';
+import Camera from '@/src/setup/Camera';
 
 export type AnimationName = 'fire' | 'reload' | 'idle' | 'walk';
 export type AnimationNameMap = Record<AnimationName, string>;
@@ -20,6 +21,8 @@ export abstract class Weapon {
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
 
+  protected abstract readonly weaponOffset: Vector3;
+
   protected constructor(protected readonly weapon: GLTF, animationNames: AnimationNameMap) {
     this.animationMixer = new AnimationMixer(weapon.scene);
 
@@ -27,6 +30,14 @@ export abstract class Weapon {
     this.reloadAnimation = this.getAnimation(animationNames.reload);
     this.idleAnimation = this.getAnimation(animationNames.idle);
     this.walkAnimation = this.getAnimation(animationNames.walk);
+  }
+
+  hide(): void {
+    this.weapon.scene.visible = false;
+  }
+
+  show(): void {
+    this.weapon.scene.visible = true;
   }
 
   shoot(): void {
@@ -65,6 +76,10 @@ export abstract class Weapon {
 
   setBullets(bullets: number) {
     this.bullets = bullets;
+  }
+
+  setScale(scale: number) {
+    this.weapon.scene.scale.set(scale, scale, scale);
   }
 
   setMagazineSize(magazineSize: number) {
@@ -118,5 +133,18 @@ export abstract class Weapon {
     if (!animation) throw new Error(`Animation "${name}" not found`);
 
     return this.animationMixer.clipAction(animation);
+  }
+
+  public adjustBy(camera: Camera): void {
+    const offset = this.weaponOffset.clone();
+    // Calculate the offset of the weapon from the camera
+    offset.applyQuaternion(camera.quaternion);
+
+    // Update the weapon position based on the camera position and offset
+    this.weapon.scene.position.copy(camera.position).add(offset);
+
+    // Update the weapon rotation to match the camera rotation
+    this.weapon.scene.rotation.copy(camera.rotation);
+    this.weapon.scene.rotateY(Math.PI);
   }
 }

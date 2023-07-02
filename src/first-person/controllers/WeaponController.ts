@@ -4,20 +4,21 @@ import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { DesertEagle } from '@/src/first-person/weapons/DesertEagle';
 import { Assets } from '@/src/first-person/Player';
 import { PointLight, Scene } from 'three';
+import { M4A1 } from '@/src/first-person/weapons/M4A1';
 
 export class WeaponController {
   public readonly scene: Scene;
   public readonly camera: Camera;
   public readonly backlight: PointLight;
   private readonly weapons: Weapon[];
-  private readonly weaponIndex: number;
+  private weaponIndex: number;
 
   constructor(private readonly gui: GUI, assets: Assets) {
-    this.weapons = [new DesertEagle(assets.pistol)];
+    this.weapons = [new DesertEagle(assets.pistol), new M4A1(assets.rifle)];
     this.weaponIndex = 0;
 
     this.scene = new Scene();
-    this.camera = new Camera(5);
+    this.camera = new Camera(35);
     this.backlight = this.createLight();
 
     // No need to add the camera to the scene
@@ -25,10 +26,25 @@ export class WeaponController {
     for (const asset of Object.values(assets)) {
       this.scene.add(asset.scene);
     }
+    this.hideWeapons();
+    this.weapon.show();
   }
 
   private get weapon() {
     return this.weapons[this.weaponIndex];
+  }
+
+  private hideWeapons() {
+    for (const weapon of this.weapons) {
+      weapon.hide();
+    }
+  }
+
+  setWeapon(index: number) {
+    if (!this.weapons[index]) return;
+    this.weapon.hide();
+    this.weaponIndex = index;
+    this.weapon.show();
   }
 
   shoot() {
@@ -37,6 +53,10 @@ export class WeaponController {
 
   reload() {
     this.weapon.reload();
+  }
+
+  adjustBy(camera: Camera): void {
+    this.weapon.adjustBy(camera);
   }
 
   update(delta: number) {

@@ -11,7 +11,7 @@ import { Scene } from '@/src/setup';
 import GUI from 'lil-gui';
 
 export type WeaponName = 'DesertEagle' | 'M4A1' | 'AK47' | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife';
-export type WeaponType = 'pistol'; // | 'rifle' | 'smg' | 'sniper' | 'heavy' | 'knife';
+export type WeaponType = 'pistol' | 'rifle'; // | 'smg' | 'sniper' | 'heavy' | 'knife';
 export type WeaponFireMode = 'auto' | 'burst' | 'semi';
 export type WeaponSound = 'shoot' | 'reload' | 'empty' | 'equip' | 'unequip';
 export type Assets = Record<WeaponType, GLTF>;
@@ -67,6 +67,11 @@ export class Player {
     this.inputController.addEventListener('toggle-flashlight', () => this.flashlight.toggle());
     this.mouseController.addEventListener('weapon-shoot', () => this.weapon.shoot());
     this.inputController.addEventListener('weapon-reload', () => this.weapon.reload());
+    this.inputController.addEventListener('weapon-switch', (event) => {
+      if (event instanceof CustomEvent) {
+        this.weapon.setWeapon(event.detail.weaponIndex);
+      }
+    });
   }
 
   reset() {
@@ -161,19 +166,8 @@ export class Player {
     // Update the camera position
     this.camera.position.copy(this.playerBody.end);
 
-    // Update the flashlight position
     this.flashlight.adjustBy(this.camera);
-
-    // Calculate the offset of the weapon from the camera
-    const weaponOffset = new Vector3(0.32, -0.38, -1.1);
-    weaponOffset.applyQuaternion(this.camera.quaternion);
-
-    // Update the weapon position based on the camera position and offset
-    this.weapon.scene.position.copy(this.camera.position).add(weaponOffset);
-
-    // Update the weapon rotation to match the camera rotation
-    this.weapon.scene.rotation.copy(this.camera.rotation);
-    this.weapon.scene.rotateY(Math.PI);
+    this.weapon.adjustBy(this.camera);
   }
 
   private evaluateCollisions() {

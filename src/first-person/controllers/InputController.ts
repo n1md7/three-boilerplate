@@ -56,6 +56,24 @@ export class InputController extends EventTarget {
         break;
       case 'KeyR':
         this.dispatchEvent(new Event('weapon-reload'));
+        break;
+      case 'Digit1':
+      case 'Digit2':
+      case 'Digit3':
+      case 'Digit4':
+      case 'Digit5':
+      case 'Digit6':
+      case 'Digit7':
+      case 'Digit8':
+      case 'Digit9':
+        this.dispatchEvent(
+          new CustomEvent('weapon-switch', {
+            detail: {
+              weaponIndex: parseInt(event.code.slice(-1)) - 1,
+            },
+          })
+        );
+        break;
     }
   }
 
