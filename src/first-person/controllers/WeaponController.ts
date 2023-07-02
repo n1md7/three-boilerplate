@@ -3,8 +3,8 @@ import GUI from 'lil-gui';
 import Camera from '@/src/setup/Camera';
 
 export class WeaponController {
-  private weapons: unknown[]; // TODO: Add dedicated class
-  private weaponIndex: number;
+  // private weapons: unknown[]; // TODO: Add dedicated class
+  // private weaponIndex: number;
 
   public readonly scene: THREE.Scene;
   public readonly camera: Camera;
@@ -12,8 +12,8 @@ export class WeaponController {
   public light!: THREE.DirectionalLight;
 
   constructor(private readonly gui: GUI) {
-    this.weapons = [];
-    this.weaponIndex = 0;
+    // this.weapons = [];
+    // this.weaponIndex = 0;
 
     this.scene = new THREE.Scene();
     this.camera = new Camera();
