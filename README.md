@@ -7,6 +7,17 @@ Technologies used
 - Typescript
 - Electron
 
+Features
+
+- FPS controls (WASD)
+- Orbit controls (Mouse)
+- Object collisions
+- Shooting animations
+- Multiple weapons (Pistol, Shotgun, Rifle, etc)
+- Sounds (WIP)
+- Particle effects (WIP)
+- UI (WIP)
+
 ## How to run
 
 ```bash
@@ -28,7 +39,6 @@ $ npm run package
 ```
 
 ![image](https://github.com/n1md7/three-boilerplate/assets/6734058/620ca8af-9f7e-45e7-9eaf-2b757fbcc9b4)
-
 
 ### Workflow actions
 
