@@ -13,6 +13,7 @@ Features
 - Orbit controls (Mouse)
 - Object collisions
 - Shooting animations
+- Player flashlight (F)
 - Multiple weapons (Pistol, Shotgun, Rifle, etc)
 - Sounds (WIP)
 - Particle effects (WIP)
