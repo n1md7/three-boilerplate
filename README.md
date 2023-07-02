@@ -1,4 +1,4 @@
-# ThreeJS boilerplate
+# ThreeJS FPS boilerplate
 
 Technologies used
 
@@ -27,7 +27,8 @@ $ npm run make
 $ npm run package
 ```
 
-<img width="1431" alt="image" src="https://github.com/n1md7/three-boilerplate/assets/6734058/e2892705-7fb1-4949-8291-f9b331af3950">
+![image](https://github.com/n1md7/three-boilerplate/assets/6734058/620ca8af-9f7e-45e7-9eaf-2b757fbcc9b4)
+
 
 ### Workflow actions
 
