@@ -12,5 +12,6 @@ export default class Renderer extends THREE.WebGLRenderer {
     // this.useLegacyLights = false;
     // Limit pixel ratio, 2 is more than enough
     this.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.autoClear = false; // To allow 2nd scene to render
   }
 }

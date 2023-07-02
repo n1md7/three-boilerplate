@@ -9,6 +9,7 @@ import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Player } from '@/src/first-person/Player';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
 import '@/src/styles/style.css';
+import { WeaponController } from '@/src/first-person/controllers/WeaponController';
 
 (async function setup() {
   const aGLTF = new MyGLTFLoader();
@@ -26,6 +27,9 @@ import '@/src/styles/style.css';
   const renderer = new Renderer();
   const camera = new Camera();
   const scene = new Scene(gui, world);
+  const weapon = new WeaponController(gui.addFolder('WeaponController'));
+
+  weapon.scene.add(desertEagleGLTF.scene);
 
   const flashlight = new FlashLight(gui);
   const ducky = duckGLTF.scene;
@@ -40,20 +44,11 @@ import '@/src/styles/style.css';
     .addStairs(boxTexture)
     .addBoxes(boxTexture, 64);
 
-  gui
-    .addFolder('Rubber Ducky')
-    .add(ducky.rotation, 'z')
-    .step(Math.PI / 180)
-    .min(0)
-    .max(Math.PI)
-    .name('rotationZ')
-    .show();
-
   const material = new THREE.MeshStandardMaterial({ wireframe: true, color: '#AA0033' });
   const geometry = new THREE.SphereGeometry(2, 32, 32);
   const sphere = new THREE.Mesh(geometry, material);
 
-  scene.add(sphere, ducky, desertEagleGLTF.scene, flashlight, flashlight.target);
+  scene.add(sphere, ducky, flashlight, flashlight.target);
 
   world.fromGraphNode(sphere);
 
@@ -81,7 +76,16 @@ import '@/src/styles/style.css';
         ducky.rotation.y = elapsedTime;
 
         timestamp.update();
+
+        renderer.clear(); // Clear the color buffer
         renderer.render(scene, camera);
+
+        renderer.clearDepth(); // Clear only the depth buffer
+
+        camera.getWorldPosition(weapon.camera.position);
+        camera.getWorldQuaternion(weapon.camera.quaternion);
+
+        renderer.render(weapon.scene, weapon.camera);
       }
 
       requestAnimationFrame(gameLoop);
