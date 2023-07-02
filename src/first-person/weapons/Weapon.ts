@@ -32,9 +32,10 @@ export abstract class Weapon {
   shoot(): void {
     if (this.reloading) return;
     if (this.bullets === 0) return this.reload();
-    if (this.getShootDelta() < this.fireRate) return;
+    if (this.getShootDelta() < 1000 / this.fireRate) return;
 
     this.decrementBullets();
+    this.updateDelta();
     this.shootAnimation.reset();
     this.shootAnimation.play();
   }
@@ -46,7 +47,6 @@ export abstract class Weapon {
     this.reloading = true;
 
     this.resetAnimations();
-    this.stopAnimations();
 
     this.reloadAnimation.play();
 
@@ -103,6 +103,9 @@ export abstract class Weapon {
 
   private decrementBullets() {
     this.bullets--;
+  }
+
+  private updateDelta() {
     this.lastShot = Date.now();
   }
 

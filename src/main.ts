@@ -24,7 +24,7 @@ import '@/src/styles/style.css';
   const world = new Octree();
   const renderer = new Renderer();
   const camera = new Camera();
-  const scene = new Scene(gui, world);
+  const scene = new Scene(gui.addFolder('Main scene'), world);
 
   gui.show(Debug.enabled());
 
@@ -56,6 +56,7 @@ import '@/src/styles/style.css';
       performance.start();
       const delta = clock.getDelta();
       if (timestamp.delta >= DELAY_MS) {
+        player.update(delta);
         if (camera.position.y <= -25) player.reset();
 
         timestamp.update();
@@ -67,8 +68,6 @@ import '@/src/styles/style.css';
 
         camera.getWorldPosition(player.weapon.camera.position);
         camera.getWorldQuaternion(player.weapon.camera.quaternion);
-
-        player.update(delta);
 
         renderer.render(player.weapon.scene, player.weapon.camera);
       }

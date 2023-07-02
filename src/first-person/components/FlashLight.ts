@@ -1,6 +1,5 @@
 import { SpotLight, Vector3 } from 'three';
 import { GUI } from 'lil-gui';
-import { Debug } from '@/src/setup/utils/common';
 import { Camera } from '@/src/setup';
 
 export class FlashLight extends SpotLight {
@@ -21,7 +20,7 @@ export class FlashLight extends SpotLight {
 
     this.visible = true;
 
-    Debug.enabled() && this.addGUI();
+    this.addGUI();
   }
 
   adjustBy(camera: Camera) {

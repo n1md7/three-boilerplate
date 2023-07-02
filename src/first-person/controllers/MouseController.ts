@@ -30,7 +30,9 @@ export class MouseController extends EventTarget {
     this.flashlight.adjustBy(this.camera);
   }
 
-  private mouseClickHandler() {}
+  private mouseClickHandler() {
+    // Not implemented
+  }
 
   private mouseReleaseHandler() {
     if (document.pointerLockElement !== null) {

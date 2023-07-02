@@ -3,26 +3,25 @@ import Camera from '@/src/setup/Camera';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { DesertEagle } from '@/src/first-person/weapons/DesertEagle';
 import { Assets } from '@/src/first-person/Player';
-import { DirectionalLight, Scene } from 'three';
+import { PointLight, Scene } from 'three';
 
 export class WeaponController {
-  private readonly weapons: Weapon[];
-  private readonly weaponIndex: number;
-
   public readonly scene: Scene;
   public readonly camera: Camera;
-
-  public light!: DirectionalLight;
+  public readonly backlight: PointLight;
+  private readonly weapons: Weapon[];
+  private readonly weaponIndex: number;
 
   constructor(private readonly gui: GUI, assets: Assets) {
     this.weapons = [new DesertEagle(assets.pistol)];
     this.weaponIndex = 0;
 
     this.scene = new Scene();
-    this.camera = new Camera();
-    this.addLight();
-    this.addCamera();
+    this.camera = new Camera(5);
+    this.backlight = this.createLight();
 
+    // No need to add the camera to the scene
+    this.scene.add(this.backlight);
     for (const asset of Object.values(assets)) {
       this.scene.add(asset.scene);
     }
@@ -36,26 +35,23 @@ export class WeaponController {
     this.weapon.shoot();
   }
 
-  private addLight() {
-    const folder = this.gui.addFolder('Light');
-    this.light = new DirectionalLight(0xffffff, 2);
-    this.light.position.set(0, 2, 1);
-
-    folder.add(this.light, 'intensity', 0, 20, 0.01);
-    folder.addColor(this.light, 'color');
-    folder.add(this.light.position, 'x', -10, 10, 0.01);
-    folder.add(this.light.position, 'y', -10, 10, 0.01);
-    folder.add(this.light.position, 'z', -10, 10, 0.01);
-
-    this.scene.add(this.light);
-  }
-
-  private addCamera() {
-    this.camera.position.set(0, 0, 2);
-    this.scene.add(this.camera);
-  }
-
   update(delta: number) {
     this.weapon.update(delta);
+  }
+
+  private createLight() {
+    const folder = this.gui.addFolder('Light');
+    const light = new PointLight('#ffffff', 3);
+    light.position.set(0, 10, 0);
+
+    folder.add(light, 'distance', 0, 20, 0.01);
+    folder.add(light, 'decay', 0, 20, 0.01);
+    folder.add(light, 'intensity', 0, 20, 0.01);
+    folder.addColor(light, 'color');
+    folder.add(light.position, 'x', -10, 10, 0.01);
+    folder.add(light.position, 'y', -10, 10, 0.01);
+    folder.add(light.position, 'z', -10, 10, 0.01);
+
+    return light;
   }
 }

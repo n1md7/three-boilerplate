@@ -36,16 +36,16 @@ export class Player {
     private readonly camera: PerspectiveCamera,
     private readonly world: Octree,
     private readonly scene: Scene,
-    private readonly gui: GUI,
-    private readonly assets: Assets
+    gui: GUI,
+    assets: Assets
   ) {
     const start = new Vector3(0, 0.35, 0);
     const end = new Vector3(0, 1, 0);
     this.playerBody = new Capsule(start, end, 0.35);
     this.playerVelocity = new Vector3();
+    this.inputController = new InputController();
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
     this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets);
-    this.inputController = new InputController();
     this.mouseController = new MouseController(camera, this.flashlight);
     this.crosshairController = CrosshairController.getInstance();
 
@@ -181,16 +181,16 @@ export class Player {
 
   private evaluateCollisions() {
     this.playerIsGrounded = false;
-    const result = this.world.capsuleIntersect(this.playerBody);
+    const intersect = this.world.capsuleIntersect(this.playerBody);
 
-    if (result) {
-      this.playerIsGrounded = result.normal.y > 0;
+    if (intersect) {
+      this.playerIsGrounded = intersect.normal.y > 0;
 
       if (!this.playerIsGrounded) {
-        this.playerVelocity.addScaledVector(result.normal, -result.normal.dot(this.playerVelocity));
+        this.playerVelocity.addScaledVector(intersect.normal, -intersect.normal.dot(this.playerVelocity));
       }
 
-      this.playerBody.translate(result.normal.multiplyScalar(result.depth));
+      this.playerBody.translate(intersect.normal.multiplyScalar(intersect.depth));
     }
   }
 
