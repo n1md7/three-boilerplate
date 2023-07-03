@@ -59,11 +59,11 @@ export class WeaponController {
   }
 
   shoot() {
-    this.weapon.shoot();
+    return this.weapon.shoot();
   }
 
   reload() {
-    this.weapon.reload();
+    return this.weapon.reload();
   }
 
   adjustBy(camera: Camera): void {

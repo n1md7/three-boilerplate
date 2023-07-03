@@ -41,10 +41,10 @@ export abstract class Weapon {
     this.weapon.scene.visible = true;
   }
 
-  shoot(): void {
-    if (this.reloading) return;
+  shoot(): boolean {
+    if (this.reloading) return false;
     if (this.bullets <= 0) return this.reload();
-    if (this.getShootDelta() < this.fireRate) return;
+    if (this.getShootDelta() < this.fireRate) return false;
 
     this.decrementBullets();
     this.updateDelta();
@@ -53,11 +53,13 @@ export abstract class Weapon {
     this.stopAnimations();
 
     this.shootAnimation.play();
+
+    return true;
   }
 
-  reload(): void {
-    if (this.reloading) return;
-    if (this.bullets === this.magazineSize) return;
+  reload(): boolean {
+    if (this.reloading) return false;
+    if (this.bullets === this.magazineSize) return false;
 
     this.reloading = true;
     this.resetAnimations();
@@ -69,6 +71,8 @@ export abstract class Weapon {
       this.bullets = this.magazineSize;
       this.reloading = false;
     }, this.reloadTime);
+
+    return true;
   }
 
   update(delta: number): void {
