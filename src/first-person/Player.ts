@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { Capsule } from 'three/examples/jsm/math/Capsule';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
@@ -7,7 +7,7 @@ import { MouseController } from '@/src/first-person/controllers/MouseController'
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 import { WeaponController } from '@/src/first-person/controllers/WeaponController';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
-import { Scene } from '@/src/setup';
+import { Scene, Camera } from '@/src/setup';
 import GUI from 'lil-gui';
 import { BulletController } from '@/src/first-person/controllers/BulletController';
 
@@ -34,7 +34,7 @@ export class Player {
   private accuracy = 100;
 
   constructor(
-    private readonly camera: PerspectiveCamera,
+    private readonly camera: Camera,
     private readonly world: Octree,
     private readonly scene: Scene,
     gui: GUI,

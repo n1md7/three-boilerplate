@@ -8,6 +8,7 @@ import { Player } from '@/src/first-person/Player';
 import { Debug } from '@/src/setup/utils/common';
 import { Clock } from 'three';
 import GUI from 'lil-gui';
+
 import '@/src/styles/style.css';
 
 (async function setup() {
@@ -59,7 +60,7 @@ import '@/src/styles/style.css';
     const clock = new Clock();
     const performance = new Performance();
     const timestamp = new Timestamp();
-    const windowUtils = new WindowUtils(renderer, camera);
+    const windowUtils = new WindowUtils(renderer, camera, player.weapon.camera);
     (function onSetup() {
       performance.show();
       windowUtils.subscribe();

@@ -1,20 +1,29 @@
 import * as THREE from 'three';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
+import { Vector3 } from 'three';
 
-class BulletMesh extends THREE.Mesh {
+class Bullet extends THREE.Mesh {
   velocity = new THREE.Vector3();
 }
+
+type Intersection =
+  | false
+  | {
+      distance: number;
+      position: THREE.Vector3;
+      triangle: THREE.Triangle;
+    };
 
 export class BulletController {
   private scene: THREE.Scene;
   private camera: THREE.Camera;
   private octree: Octree;
 
-  private readonly bullets: BulletMesh[];
+  private readonly bullets: [Bullet, Vector3][];
 
   private readonly bulletSpeed: number;
   private readonly bulletSize: number;
-  private readonly bulletColor: number;
+  private readonly bulletColor: string;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, octree: Octree) {
     this.scene = scene;
@@ -24,82 +33,94 @@ export class BulletController {
 
     this.bulletSpeed = 0.1;
     this.bulletSize = 0.1;
-    this.bulletColor = 0xff0000;
+    this.bulletColor = 'rgba(201,106,10,0.56)';
   }
 
   shoot() {
     const direction = new THREE.Vector3();
     this.camera.getWorldDirection(direction);
-
+    console.log('Direction:', direction);
     const geometry = new THREE.SphereGeometry(this.bulletSize, 8, 8);
     const material = new THREE.MeshBasicMaterial({ color: this.bulletColor });
-    const bullet = new BulletMesh(geometry, material);
+    const bullet = new Bullet(geometry, material);
 
-    bullet.position.copy(this.camera.position);
+    const shootPoint = new THREE.Vector3();
+    shootPoint.copy(this.camera.position);
+    // Bullets start at the camera position
+    bullet.position.copy(shootPoint);
     bullet.velocity = direction.multiplyScalar(this.bulletSpeed);
 
     this.scene.add(bullet);
-    this.bullets.push(bullet);
+    this.bullets.push([bullet, shootPoint]);
   }
 
   update() {
+    // TODO: use more appropriate data-structure for bullets, Like a linked list or a queue
+    const distanceThreshold = 3; // Adjust the desired distance threshold
+
     for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const bullet = this.bullets[i];
+      const [bullet, shootPoint] = this.bullets[i];
+      // Animates the bullet by moving it the original direction
       bullet.position.add(bullet.velocity);
 
-      const collision = this.detectCollision(bullet);
+      const distanceTraveled = bullet.position.distanceTo(shootPoint);
 
-      if (collision) {
-        this.highlightObject(collision.object);
+      // FIXME: This is not working as expected
+      console.log('Distance:', distanceTraveled);
+
+      // Calculate the distance traveled by the bullet
+      console.log('Distance traveled:', distanceTraveled);
+      if (distanceTraveled >= distanceThreshold) {
+        console.log('Bullet has traveled far enough');
+        // Bullet has flown the desired distance, remove it
         this.scene.remove(bullet);
         this.bullets.splice(i, 1);
+      } else {
+        const collision = this.detectCollision(bullet);
+
+        if (collision) {
+          this.highlightObject(collision.position);
+          this.scene.remove(bullet);
+          this.bullets.splice(i, 1);
+        }
       }
     }
   }
 
-  private detectCollision(bullet: BulletMesh): THREE.Intersection | null {
+  private detectCollision(bullet: Bullet): Intersection | null {
     const raycaster = new THREE.Raycaster();
     raycaster.set(bullet.position, bullet.velocity.normalize());
 
     // Perform an Octree search to get potential collisions
-    const intersects = this.octree.rayIntersect(raycaster.ray);
+    const intersection: Intersection = this.octree.rayIntersect(raycaster.ray);
 
-    // Check if intersects is an array before iterating
-    if (Array.isArray(intersects)) {
-      for (const intersection of intersects) {
-        const object = intersection.object;
-
-        // Perform a more precise collision check using the bullet's geometry
-        const collision = raycaster.intersectObject(object);
-
-        if (collision.length > 0) {
-          return collision[0];
-        }
-      }
+    if (intersection) {
+      return intersection;
     }
 
     return null;
   }
 
-  private highlightObject(object: THREE.Object3D) {
+  private highlightObject(position: THREE.Vector3) {
     // Create a new material with a brighter color
     const highlightColor = new THREE.Color(0xff0000); // Adjust the color as needed
     const highlightMaterial = new THREE.MeshBasicMaterial({ color: highlightColor });
 
-    // Check if the object has a Mesh component
-    if (object instanceof THREE.Mesh) {
-      // Store the original material of the object
-      const originalMaterial = object.material;
+    // Create a sphere to indicate the position of the collision
+    const sphereGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const sphere = new THREE.Mesh(sphereGeometry, highlightMaterial);
 
-      // Apply the highlight material to the object
-      object.material = highlightMaterial;
+    // Position the sphere at the collision point
+    sphere.position.copy(position);
 
-      // Delay the restoration of the original material after a certain duration
-      const highlightDuration = 1000; // Adjust the duration as needed
+    // Add the sphere to the scene
+    this.scene.add(sphere);
 
-      setTimeout(() => {
-        object.material = originalMaterial;
-      }, highlightDuration);
-    }
+    // Delay the removal of the sphere after a certain duration
+    const sphereDuration = 5000; // Adjust the duration as needed
+
+    setTimeout(() => {
+      this.scene.remove(sphere);
+    }, sphereDuration);
   }
 }

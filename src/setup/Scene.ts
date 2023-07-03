@@ -31,7 +31,7 @@ export default class Scene extends ThreeScene {
   }
 
   addGridHelper() {
-    this.add(new GridHelper(32, 64, 0x888888, 0x444444));
+    this.add(new GridHelper(32, 32, 0x888888, 0x444444));
 
     return this;
   }
