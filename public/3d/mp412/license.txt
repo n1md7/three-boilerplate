@@ -1,0 +1,11 @@
+Model Information:
+* title:	MP412 Dual With Hands And Animations
+* source:	https://sketchfab.com/3d-models/mp412-dual-with-hands-and-animations-a9b4d671b2c04ab9ab5999fb50842172
+* author:	BillyTheKid (https://sketchfab.com/FGmodels)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "MP412 Dual With Hands And Animations" (https://sketchfab.com/3d-models/mp412-dual-with-hands-and-animations-a9b4d671b2c04ab9ab5999fb50842172) by BillyTheKid (https://sketchfab.com/FGmodels) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

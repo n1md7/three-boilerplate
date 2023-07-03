@@ -49,5 +49,6 @@ export class FlashLight extends SpotLight {
     this.gui.add(this.shadow.camera, 'near', 0, 1000, 0.01);
     this.gui.add(this.shadow.camera, 'far', 1000, 5000, 0.01);
     this.gui.add(this.shadow.camera, 'fov', 0, 180, 0.01);
+    this.gui.close();
   }
 }

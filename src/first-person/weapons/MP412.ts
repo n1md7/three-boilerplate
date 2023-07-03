@@ -3,16 +3,16 @@ import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { Vector3 } from 'three';
 import GUI from 'lil-gui';
 
-export class DesertEagle extends Weapon {
-  protected weaponOffset = new Vector3(0.48, -0.16, -1.01);
-  protected weaponRotation = new Vector3(0.061, 3.23, -0.02);
+export class MP412 extends Weapon {
+  protected weaponOffset = new Vector3(0.98, -0.81, -0.25);
+  protected weaponRotation = new Vector3(0.47, 3.25, 0.22);
 
   constructor(weapon: GLTF, gui: GUI) {
     super(weapon, {
-      fire: 'deagle_skeleton|shoot1',
-      reload: 'deagle_skeleton|reload',
-      idle: 'deagle_skeleton|idle1',
-      walk: 'deagle_skeleton|idle1', // Missing dedicated animation
+      fire: 'h2_skeleton|shoot_right1',
+      reload: 'h2_skeleton|reload',
+      idle: 'h2_skeleton|idle',
+      walk: 'h2_skeleton|idle',
     });
 
     this.setScale(1.8);

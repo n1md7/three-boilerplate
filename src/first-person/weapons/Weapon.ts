@@ -1,6 +1,7 @@
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { AnimationAction, AnimationMixer, LoopOnce, Vector3 } from 'three';
 import Camera from '@/src/setup/Camera';
+import GUI from 'lil-gui';
 
 export type AnimationName = 'fire' | 'reload' | 'idle' | 'walk';
 export type AnimationNameMap = Record<AnimationName, string>;
@@ -12,16 +13,16 @@ export abstract class Weapon {
   protected readonly walkAnimation: AnimationAction;
   protected readonly animationMixer: AnimationMixer;
 
+  protected abstract weaponOffset: Vector3; // Offset of weapon from camera
+  protected abstract weaponRotation: Vector3; // Rotation of weapon
+
   protected fireRate = 1000; // 1000ms delay between shots
   protected reloadTime = 3000; // 3000ms reload time
   protected magazineSize = 7; // 7 bullets per magazine
   protected bullets = 7; // Current bullets in magazine
   protected damageRange = 100; // 100m effective range (m or blocks?)
-
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
-
-  protected abstract readonly weaponOffset: Vector3;
 
   protected constructor(protected readonly weapon: GLTF, animationNames: AnimationNameMap) {
     this.animationMixer = new AnimationMixer(weapon.scene);
@@ -42,7 +43,7 @@ export abstract class Weapon {
 
   shoot(): void {
     if (this.reloading) return;
-    if (this.bullets === 0) return this.reload();
+    if (this.bullets <= 0) return this.reload();
     if (this.getShootDelta() < this.fireRate) return;
 
     this.decrementBullets();
@@ -102,6 +103,58 @@ export abstract class Weapon {
     this.damageRange = range;
   }
 
+  public adjustBy(camera: Camera): void {
+    const offset = this.weaponOffset.clone();
+    // Calculate the offset of the weapon from the camera
+    offset.applyQuaternion(camera.quaternion);
+
+    // Update the weapon position based on the camera position and offset
+    this.weapon.scene.position.copy(camera.position).add(offset);
+
+    // Update the weapon rotation to match the camera rotation
+    this.weapon.scene.rotation.copy(camera.rotation);
+
+    // Transform the weapon as needed
+    this.weapon.scene.rotateX(this.weaponRotation.x);
+    this.weapon.scene.rotateY(this.weaponRotation.y);
+    this.weapon.scene.rotateZ(this.weaponRotation.z);
+  }
+
+  protected addGui(gui: GUI): void {
+    gui.add(this, 'fireRate', this.fireRate).step(1).name('fireRate (ms)').min(100).max(2000);
+    gui.add(this, 'reloadTime', this.reloadTime).step(1).name('reloadTime (ms)').min(100).max(7500);
+    gui.add(this, 'magazineSize', this.magazineSize).step(1).name('magazineSize').min(7).max(200);
+
+    gui.add(this.weaponOffset, 'x', this.weaponOffset.x).step(0.01).min(-8).max(8).name('offsetX');
+    gui.add(this.weaponOffset, 'y', this.weaponOffset.y).step(0.01).min(-8).max(8).name('offsetY');
+    gui.add(this.weaponOffset, 'z', this.weaponOffset.z).step(0.01).min(-8).max(8).name('offsetZ');
+
+    gui
+      .add(this.weaponRotation, 'x', this.weaponRotation.x)
+      .step(0.01)
+      .min(-Math.PI)
+      .max(2 * Math.PI)
+      .name('rotationX');
+    gui
+      .add(this.weaponRotation, 'y', this.weaponRotation.y)
+      .step(0.01)
+      .min(-Math.PI)
+      .max(2 * Math.PI)
+      .name('rotationY');
+    gui
+      .add(this.weaponRotation, 'z', this.weaponRotation.z)
+      .step(0.01)
+      .min(-Math.PI)
+      .max(2 * Math.PI)
+      .name('rotationZ');
+
+    gui.add(this.weapon.scene.scale, 'x', this.weapon.scene.scale.x).step(0.01).min(0.1).max(4).name('scaleX');
+    gui.add(this.weapon.scene.scale, 'y', this.weapon.scene.scale.y).step(0.01).min(0.1).max(4).name('scaleY');
+    gui.add(this.weapon.scene.scale, 'z', this.weapon.scene.scale.z).step(0.01).min(0.1).max(4).name('scaleZ');
+
+    gui.close();
+  }
+
   protected getShootDelta() {
     return Date.now() - this.lastShot;
   }
@@ -133,18 +186,5 @@ export abstract class Weapon {
     if (!animation) throw new Error(`Animation "${name}" not found`);
 
     return this.animationMixer.clipAction(animation);
-  }
-
-  public adjustBy(camera: Camera): void {
-    const offset = this.weaponOffset.clone();
-    // Calculate the offset of the weapon from the camera
-    offset.applyQuaternion(camera.quaternion);
-
-    // Update the weapon position based on the camera position and offset
-    this.weapon.scene.position.copy(camera.position).add(offset);
-
-    // Update the weapon rotation to match the camera rotation
-    this.weapon.scene.rotation.copy(camera.rotation);
-    this.weapon.scene.rotateY(Math.PI);
   }
 }

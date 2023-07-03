@@ -10,11 +10,10 @@ import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { Scene } from '@/src/setup';
 import GUI from 'lil-gui';
 
-export type WeaponName = 'DesertEagle' | 'M4A1' | 'AK47' | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife';
-export type WeaponType = 'pistol' | 'rifle'; // | 'smg' | 'sniper' | 'heavy' | 'knife';
+export type WeaponName = 'DesertEagle' | 'M4A1' | 'AK47' | 'M60' | 'M82' | 'MP412'; // | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife';
 export type WeaponFireMode = 'auto' | 'burst' | 'semi';
 export type WeaponSound = 'shoot' | 'reload' | 'empty' | 'equip' | 'unequip';
-export type Assets = Record<WeaponType, GLTF>;
+export type Assets = Record<WeaponName, GLTF>;
 
 export class Player {
   private readonly GRAVITY = 30;

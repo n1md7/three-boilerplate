@@ -42,11 +42,12 @@ export default class Scene extends ThreeScene {
     light.position.set(2.5, 7.5, 15);
     this.add(light, new PointLightHelper(light));
 
-    const folder = this.gui.addFolder('Light');
-    folder.add(light, 'intensity', 0, 20, 0.01);
-    folder.addColor(light, 'color');
-    folder.add(light, 'distance', 0, 100, 0.01);
-    folder.add(light, 'decay', 0, 10, 0.01);
+    const gui = this.gui.addFolder('Light');
+    gui.add(light, 'intensity', 0, 20, 0.01);
+    gui.addColor(light, 'color');
+    gui.add(light, 'distance', 0, 100, 0.01);
+    gui.add(light, 'decay', 0, 10, 0.01);
+    gui.close();
 
     return this;
   }
