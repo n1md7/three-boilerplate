@@ -17,7 +17,7 @@ export class M4A1 extends Weapon {
 
     this.setScale(0.15);
     this.setFireRate(800);
-    this.setDamageRange(50);
+    this.setEffectiveRange(50);
     this.setReloadTime(2500);
     this.setMagazineSize(25);
     this.setBullets(25);

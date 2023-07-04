@@ -9,7 +9,6 @@ import { WeaponController } from '@/src/first-person/controllers/WeaponControlle
 import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { Scene, Camera } from '@/src/setup';
 import GUI from 'lil-gui';
-import { BulletController } from '@/src/first-person/controllers/BulletController';
 
 export type WeaponName = 'DesertEagle' | 'M4A1' | 'AK47' | 'M60' | 'M82' | 'MP412'; // | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife'
 export type WeaponSound = 'shoot' | 'reload' | 'empty' | 'equip' | 'unequip';
@@ -27,7 +26,6 @@ export class Player {
   private readonly flashlight: FlashLight;
   private readonly crosshairController: CrosshairController;
   private readonly weaponController: WeaponController;
-  private readonly bulletController: BulletController;
 
   private playerIsGrounded = false; // On the floor (touching)
   private accuracy = 100;
@@ -45,8 +43,7 @@ export class Player {
     this.playerVelocity = new Vector3();
     this.inputController = new InputController();
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
-    this.bulletController = new BulletController(scene, camera, world);
-    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets);
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets, scene, camera);
     this.mouseController = new MouseController(camera, this.flashlight);
     this.crosshairController = CrosshairController.getInstance();
 
@@ -61,18 +58,12 @@ export class Player {
     return this.weaponController;
   }
 
-  get bullets() {
-    return this.bulletController;
-  }
-
   subscribe() {
     this.inputController.subscribe();
     this.mouseController.subscribe();
 
     this.inputController.addEventListener('toggle-flashlight', () => this.flashlight.toggle());
-    this.mouseController.addEventListener('weapon-shoot', () => {
-      if (this.weapon.shoot()) this.bullets.shoot();
-    });
+    this.mouseController.addEventListener('weapon-shoot', () => this.weapon.shoot());
     this.inputController.addEventListener('weapon-reload', () => this.weapon.reload());
     this.inputController.addEventListener('weapon-switch', (event) => {
       if (event instanceof CustomEvent) {
@@ -96,10 +87,9 @@ export class Player {
     for (let i = 0; i < this.STEPS_PER_FRAME; i++) {
       this.evaluateUserInput(deltaTime);
       this.updatePlayer(deltaTime);
-      this.bullets.update();
     }
-    this.updateCrosshair();
     this.weapon.update(delta);
+    this.updateCrosshair();
   }
 
   private getSideVector(vector: Vector3) {

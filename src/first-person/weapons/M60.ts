@@ -17,10 +17,13 @@ export class M60 extends Weapon {
 
     this.setScale(0.15);
     this.setFireRate(300);
-    this.setDamageRange(150);
+    this.setEffectiveRange(150);
     this.setReloadTime(3500);
     this.setMagazineSize(100);
     this.setBullets(34); // 34 bullets in the chamber 🙃
+
+    this.bulletColor = 0x00ff00;
+    this.bulletSize = 0.2;
 
     this.addGui(gui);
   }

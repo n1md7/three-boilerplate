@@ -17,7 +17,7 @@ export class MP412 extends Weapon {
 
     this.setScale(1.8);
     this.setFireRate(600);
-    this.setDamageRange(50);
+    this.setEffectiveRange(50);
     this.setReloadTime(1500);
     this.setMagazineSize(7);
     this.setBullets(7);

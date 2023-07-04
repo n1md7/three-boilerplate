@@ -9,15 +9,19 @@ import { AK47 } from '@/src/first-person/weapons/AK47';
 import { M60 } from '@/src/first-person/weapons/M60';
 import { M82 } from '@/src/first-person/weapons/M82';
 import { MP412 } from '@/src/first-person/weapons/MP412';
+import { BulletController } from '@/src/first-person/controllers/BulletController';
 
 export class WeaponController {
+  // Weapon own 2nd scene
   public readonly scene: Scene;
+  // Weapon own 2nd camera
   public readonly camera: Camera;
   public readonly backlight: PointLight;
+  private readonly bulletController: BulletController;
   private readonly weapons: Weapon[];
   private weaponIndex: number;
 
-  constructor(private readonly gui: GUI, assets: Assets) {
+  constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera) {
     this.weapons = [
       new DesertEagle(assets.DesertEagle, gui.addFolder('Desert Eagle')),
       new M4A1(assets.M4A1, gui.addFolder('M4A1')),
@@ -27,6 +31,7 @@ export class WeaponController {
       new M82(assets.M82, gui.addFolder('M82')),
     ];
     this.weaponIndex = 0;
+    this.bulletController = new BulletController(playerScene, playerCamera);
 
     this.scene = new Scene();
     this.camera = new Camera(55);
@@ -45,6 +50,10 @@ export class WeaponController {
     return this.weapons[this.weaponIndex];
   }
 
+  private get bullet() {
+    return this.bulletController;
+  }
+
   private hideWeapons() {
     for (const weapon of this.weapons) {
       weapon.hide();
@@ -59,7 +68,8 @@ export class WeaponController {
   }
 
   shoot() {
-    return this.weapon.shoot();
+    if (this.weapon.shoot()) return !!this.bullet.shoot(this.weapon);
+    return false;
   }
 
   reload() {
@@ -72,6 +82,7 @@ export class WeaponController {
 
   update(delta: number) {
     this.weapon.update(delta);
+    this.bullet.update();
   }
 
   private createLight() {

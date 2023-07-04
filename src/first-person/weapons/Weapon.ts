@@ -21,9 +21,15 @@ export abstract class Weapon {
   protected reloadTime = 3000; // 3000ms reload time
   protected magazineSize = 7; // 7 bullets per magazine by default
   protected bullets = 7; // Current bullets in magazine
-  protected damageRange = 100; // 100m effective range (m or blocks?)
+  protected effectiveRange = 100; // 100m effective range (m or blocks?)
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
+
+  public bulletSize = 0.1; // Bullet size
+  public bulletSpeed = 0.5; // Bullet speed
+  public bulletDamage = 10; // Bullet damage
+  public bulletSpread = 0.1; // Bullet spread
+  public bulletColor = 0xff0000; // Bullet color
 
   private fireMode: FireMode = 'semi';
 
@@ -106,8 +112,8 @@ export abstract class Weapon {
     this.shootAnimation.setLoop(LoopOnce, 1);
   }
 
-  setDamageRange(range: number) {
-    this.damageRange = range;
+  setEffectiveRange(range: number) {
+    this.effectiveRange = range;
   }
 
   setFireMode(mode: FireMode) {

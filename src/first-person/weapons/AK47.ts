@@ -18,7 +18,7 @@ export class AK47 extends Weapon {
 
     this.setScale(0.15);
     this.setFireRate(600);
-    this.setDamageRange(250);
+    this.setEffectiveRange(250);
     this.setReloadTime(2500);
     this.setMagazineSize(30);
 
