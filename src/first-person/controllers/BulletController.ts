@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
-import { Vector3 } from 'three';
-
-class Bullet extends THREE.Mesh {
-  velocity = new THREE.Vector3();
-}
+import { LinkedList } from '@/src/dsa/LinkedList';
+import { Bullet } from '@/src/first-person/components/Bullet';
 
 type Intersection =
   | false
@@ -19,69 +16,53 @@ export class BulletController {
   private camera: THREE.Camera;
   private octree: Octree;
 
-  private readonly bullets: [Bullet, Vector3][];
-
-  private readonly bulletSpeed: number;
-  private readonly bulletSize: number;
-  private readonly bulletColor: string;
+  private readonly bullets: LinkedList<Bullet>;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, octree: Octree) {
     this.scene = scene;
     this.camera = camera;
     this.octree = octree;
-    this.bullets = [];
-
-    this.bulletSpeed = 0.1;
-    this.bulletSize = 0.1;
-    this.bulletColor = 'rgba(201,106,10,0.56)';
+    this.bullets = new LinkedList();
   }
 
   shoot() {
     const direction = new THREE.Vector3();
+    // Get the direction the camera is facing
     this.camera.getWorldDirection(direction);
-    console.log('Direction:', direction);
-    const geometry = new THREE.SphereGeometry(this.bulletSize, 8, 8);
-    const material = new THREE.MeshBasicMaterial({ color: this.bulletColor });
-    const bullet = new Bullet(geometry, material);
 
-    const shootPoint = new THREE.Vector3();
-    shootPoint.copy(this.camera.position);
-    // Bullets start at the camera position
-    bullet.position.copy(shootPoint);
-    bullet.velocity = direction.multiplyScalar(this.bulletSpeed);
+    const bullet = new Bullet();
+    bullet.shotAt.copy(this.camera.position);
+    bullet.position.copy(this.camera.position);
+    bullet.velocity.add(direction.multiplyScalar(bullet.speed));
 
     this.scene.add(bullet);
-    this.bullets.push([bullet, shootPoint]);
+    this.bullets.add(bullet);
   }
 
   update() {
-    // TODO: use more appropriate data-structure for bullets, Like a linked list or a queue
     const distanceThreshold = 3; // Adjust the desired distance threshold
 
-    for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const [bullet, shootPoint] = this.bullets[i];
+    for (const bullet of this.bullets) {
       // Animates the bullet by moving it the original direction
-      bullet.position.add(bullet.velocity);
-
-      const distanceTraveled = bullet.position.distanceTo(shootPoint);
-
-      // FIXME: This is not working as expected
-      console.log('Distance:', distanceTraveled);
+      bullet.update();
 
       // Calculate the distance traveled by the bullet
-      console.log('Distance traveled:', distanceTraveled);
+      const distanceTraveled = bullet.position.distanceTo(bullet.shotAt);
+      // console.log('Distance traveled:', distanceTraveled);
+
+      // FIXME: distance traveled is always very low (0.000000) number
+
       if (distanceTraveled >= distanceThreshold) {
-        console.log('Bullet has traveled far enough');
         // Bullet has flown the desired distance, remove it
         this.scene.remove(bullet);
-        this.bullets.splice(i, 1);
+        this.bullets.remove(bullet);
       } else {
         const collision = this.detectCollision(bullet);
 
         if (collision) {
           this.highlightObject(collision.position);
           this.scene.remove(bullet);
-          this.bullets.splice(i, 1);
+          this.bullets.remove(bullet);
         }
       }
     }
@@ -103,7 +84,7 @@ export class BulletController {
 
   private highlightObject(position: THREE.Vector3) {
     // Create a new material with a brighter color
-    const highlightColor = new THREE.Color(0xff0000); // Adjust the color as needed
+    const highlightColor = new THREE.Color(0xff0002);
     const highlightMaterial = new THREE.MeshBasicMaterial({ color: highlightColor });
 
     // Create a sphere to indicate the position of the collision

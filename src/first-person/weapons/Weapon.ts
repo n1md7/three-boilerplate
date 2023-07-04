@@ -4,6 +4,7 @@ import Camera from '@/src/setup/Camera';
 import GUI from 'lil-gui';
 
 export type AnimationName = 'fire' | 'reload' | 'idle' | 'walk';
+export type FireMode = 'auto' | 'semi';
 export type AnimationNameMap = Record<AnimationName, string>;
 
 export abstract class Weapon {
@@ -18,11 +19,13 @@ export abstract class Weapon {
 
   protected fireRate = 1000; // 1000ms delay between shots
   protected reloadTime = 3000; // 3000ms reload time
-  protected magazineSize = 7; // 7 bullets per magazine
+  protected magazineSize = 7; // 7 bullets per magazine by default
   protected bullets = 7; // Current bullets in magazine
   protected damageRange = 100; // 100m effective range (m or blocks?)
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
+
+  private fireMode: FireMode = 'semi';
 
   protected constructor(protected readonly weapon: GLTF, animationNames: AnimationNameMap) {
     this.animationMixer = new AnimationMixer(weapon.scene);
@@ -107,7 +110,15 @@ export abstract class Weapon {
     this.damageRange = range;
   }
 
-  public adjustBy(camera: Camera): void {
+  setFireMode(mode: FireMode) {
+    this.fireMode = mode;
+  }
+
+  getFireMode(): FireMode {
+    return this.fireMode;
+  }
+
+  adjustBy(camera: Camera): void {
     const offset = this.weaponOffset.clone();
     // Calculate the offset of the weapon from the camera
     offset.applyQuaternion(camera.quaternion);
