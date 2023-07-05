@@ -12,7 +12,7 @@ Features
 - FPS controls (WASD)
 - Orbit controls (Mouse)
 - Object collisions
-- Shooting animations
+- Shooting animations (for each weapon)
 - Player flashlight (F)
 - Multiple weapons (Pistol, Shotgun, Rifle, etc)
 - Sounds (WIP)
