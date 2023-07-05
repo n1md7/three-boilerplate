@@ -39,7 +39,8 @@ $ npm run make
 $ npm run package
 ```
 
-![image](https://github.com/n1md7/three-boilerplate/assets/6734058/620ca8af-9f7e-45e7-9eaf-2b757fbcc9b4)
+![image](https://github.com/n1md7/three-boilerplate/assets/6734058/a37a3e73-d2be-46ea-9d7e-bf363e592b28)
+
 
 ### Workflow actions
 
@@ -56,6 +57,6 @@ Once it is cloned make sure you enable permissions
 git remote add template https://github.com/n1md7/three-boilerplate.git
 # Pull changes
 git pull template master
-# Merge into current branch
+# Merge into the current branch
 git merge template/master --allow-unrelated-histories
 ```
