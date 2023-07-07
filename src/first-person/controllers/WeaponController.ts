@@ -82,7 +82,7 @@ export class WeaponController {
 
   update(delta: number) {
     this.weapon.update(delta);
-    this.bullet.update();
+    this.bullet.update(this.weapon);
   }
 
   private createLight() {

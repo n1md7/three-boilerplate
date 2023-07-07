@@ -1,7 +1,8 @@
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { delay } from '@/src/setup/utils/common';
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 import { ImageLoader, LoadingManager, Texture, TextureLoader } from 'three';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { Font, FontLoader } from 'three/examples/jsm/loaders/FontLoader';
+import { delay } from '@/src/setup/utils/common';
 
 const assetLoaderView = document.querySelector('#loading')! as HTMLDivElement;
 const canvas = document.querySelector('#canvas')! as HTMLCanvasElement;
@@ -53,7 +54,7 @@ export class MyGLTFLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
-        (resource) => resolve(resource as GLTF),
+        (resource) => resolve(resource),
         undefined,
         (error) => reject(error)
       );
@@ -72,7 +73,7 @@ export class MyImageLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
-        (resource) => resolve(resource as HTMLImageElement),
+        (resource) => resolve(resource),
         undefined,
         (error) => reject(error)
       );
@@ -91,7 +92,26 @@ export class MyTextureLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
-        (resource) => resolve(resource as Texture),
+        (resource) => resolve(resource),
+        undefined,
+        (error) => reject(error)
+      );
+    });
+  }
+}
+
+export class MyFontLoader {
+  private loader: FontLoader;
+
+  constructor() {
+    this.loader = new FontLoader(manager);
+  }
+
+  load(path: string): Promise<Font> {
+    return new Promise((resolve, reject) => {
+      this.loader.load(
+        path,
+        (resource) => resolve(resource),
         undefined,
         (error) => reject(error)
       );

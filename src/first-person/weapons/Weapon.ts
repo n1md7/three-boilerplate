@@ -1,5 +1,6 @@
-import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { AnimationAction, AnimationMixer, LoopOnce, Vector3 } from 'three';
+import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { Bullet } from '@/src/first-person/components/Bullet';
 import Camera from '@/src/setup/Camera';
 import GUI from 'lil-gui';
 
@@ -21,17 +22,13 @@ export abstract class Weapon {
   protected reloadTime = 3000; // 3000ms reload time
   protected magazineSize = 7; // 7 bullets per magazine by default
   protected bullets = 7; // Current bullets in magazine
-  protected effectiveRange = 100; // 100m effective range (m or blocks?)
+
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
 
-  public bulletSize = 0.1; // Bullet size
-  public bulletSpeed = 0.5; // Bullet speed
-  public bulletDamage = 10; // Bullet damage
-  public bulletSpread = 0.1; // Bullet spread
-  public bulletColor = 0xff0000; // Bullet color
-
   private fireMode: FireMode = 'semi';
+
+  public abstract readonly bullet: Bullet;
 
   protected constructor(protected readonly weapon: GLTF, animationNames: AnimationNameMap) {
     this.animationMixer = new AnimationMixer(weapon.scene);
@@ -112,16 +109,19 @@ export abstract class Weapon {
     this.shootAnimation.setLoop(LoopOnce, 1);
   }
 
-  setEffectiveRange(range: number) {
-    this.effectiveRange = range;
-  }
-
   setFireMode(mode: FireMode) {
     this.fireMode = mode;
   }
 
   getFireMode(): FireMode {
     return this.fireMode;
+  }
+
+  get effectiveDistance(): number {
+    // Perhaps my grid helper is displaying the wrong distance
+    // but this seems to work correctly when divided by 2
+    // GridHelper block size seems to be equal to 2 🤨 ?
+    return this.bullet.distance / 2;
   }
 
   adjustBy(camera: Camera): void {

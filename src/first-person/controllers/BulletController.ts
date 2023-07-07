@@ -18,12 +18,14 @@ export class BulletController {
   shoot(weapon: Weapon) {
     const direction = new THREE.Vector3();
     // Get the direction the camera is facing
+    // But add a bit of distance to the direction to make it look like the bullet is coming out of the barrel
     this.camera.getWorldDirection(direction);
 
-    const bullet = new Bullet(weapon.bulletSize, weapon.bulletSpeed, weapon.bulletColor);
-    bullet.shotAt.copy(this.camera.position);
+    const bullet = Bullet.from(weapon.bullet);
+    // Set the bullet's position to the camera's position minus tiny bit of distance
+    bullet.shotFrom.copy(this.camera.position.sub(direction.multiplyScalar(0.1)));
     bullet.position.copy(this.camera.position);
-    bullet.velocity.add(direction.multiplyScalar(bullet.speed));
+    bullet.velocity.add(direction.multiplyScalar(weapon.bullet.speed));
 
     this.scene.add(bullet);
     this.bullets.add(bullet);
@@ -31,36 +33,33 @@ export class BulletController {
     return bullet;
   }
 
-  update() {
+  update(weapon: Weapon) {
     // Adjust the desired distance threshold
-    const distanceThreshold = 5; // units, effectively the range of the weapon
-
-    for (const bullet of this.bullets) {
+    BulletLoop: for (const bullet of this.bullets) {
       // Animates the bullet by moving it the original direction
       bullet.update();
 
-      const intersections = this.detectIntersections(bullet);
+      if (bullet.isEffective(weapon)) {
+        for (const intersection of this.detectIntersections(bullet)) {
+          // If object is a mesh, highlight it
+          if (intersection.object instanceof THREE.Mesh) {
+            this.highlightIntersectionPoint(intersection.point, bullet);
+            this.highlightIntersectionObject(intersection.object);
+            this.removeBullet(bullet);
 
-      if (bullet.position.distanceTo(bullet.shotAt) > distanceThreshold) {
-        this.scene.remove(bullet);
-        this.bullets.remove(bullet);
-        continue;
-      }
-
-      // When bullet collides with an object, highlight it
-      for (const intersection of intersections) {
-        if (intersection.distance > distanceThreshold) continue;
-
-        // If object is a mesh, highlight it
-        if (intersection.object instanceof THREE.Mesh) {
-          this.highlightObject(intersection.point, bullet);
-          this.scene.remove(bullet);
-          this.bullets.remove(bullet);
-
-          break; // One bullet can only hit one object
+            continue BulletLoop; // One bullet can only hit one object
+          }
         }
       }
+
+      // When a bullet not effective or when it doesn't hit anything ( anything that is Mesh), remove it
+      this.removeBullet(bullet);
     }
+  }
+
+  private removeBullet(bullet: Bullet) {
+    this.scene.remove(bullet);
+    this.bullets.remove(bullet);
   }
 
   private detectIntersections(bullet: Bullet) {
@@ -70,7 +69,7 @@ export class BulletController {
     return raycaster.intersectObject(this.scene, true);
   }
 
-  private highlightObject(position: THREE.Vector3, bullet: Bullet) {
+  private highlightIntersectionPoint(position: THREE.Vector3, bullet: Bullet) {
     // Create a new material with a brighter color
     const highlightMaterial = new THREE.MeshBasicMaterial({ color: bullet.color });
 
@@ -90,5 +89,21 @@ export class BulletController {
     setTimeout(() => {
       this.scene.remove(sphere);
     }, sphereDuration);
+  }
+
+  private highlightIntersectionObject(object: THREE.Object3D) {
+    // Create a new material with a brighter color
+    const highlightMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
+
+    if (object instanceof THREE.Mesh) {
+      if (object.name === 'mother-fucking-box') {
+        // Change the material of the object to the new material
+        object.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.material = highlightMaterial;
+          }
+        });
+      }
+    }
   }
 }

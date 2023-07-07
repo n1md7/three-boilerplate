@@ -2,10 +2,18 @@ import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { Vector3 } from 'three';
 import GUI from 'lil-gui';
+import { Bullet } from '@/src/first-person/components/Bullet';
 
 export class M4A1 extends Weapon {
   protected weaponOffset = new Vector3(0.32, 0.1, 0.3);
   protected weaponRotation = new Vector3(0, Math.PI, 0);
+
+  public readonly bullet = new Bullet({
+    speed: 0.65,
+    size: 0.2,
+    distance: 80,
+    color: '#fa0f0f',
+  });
 
   constructor(weapon: GLTF, gui: GUI) {
     super(weapon, {
@@ -17,7 +25,6 @@ export class M4A1 extends Weapon {
 
     this.setScale(0.15);
     this.setFireRate(800);
-    this.setEffectiveRange(50);
     this.setReloadTime(2500);
     this.setMagazineSize(25);
     this.setBullets(25);

@@ -51,7 +51,7 @@ export class Player {
 
     this.subscribe();
     // Set Player Y to be 30 units above the ground
-    this.playerBody.translate(new Vector3(0, 30, 0));
+    this.playerBody.translate(new Vector3(0, 5, 0));
   }
 
   get weapon() {

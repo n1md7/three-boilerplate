@@ -58,7 +58,7 @@ export default class Scene extends ThreeScene {
     texture.repeat.set(this.width / 8, this.depth / 8);
 
     const ground = new Mesh(
-      new PlaneGeometry(100, 100),
+      new PlaneGeometry(256, 256),
       new MeshStandardMaterial({
         map: texture,
         side: DoubleSide,
@@ -89,6 +89,7 @@ export default class Scene extends ThreeScene {
 
     for (const _ of Array(count).keys()) {
       const box = new Mesh(boxGeometry, boxMaterial);
+      box.name = 'mother-fucking-box';
       box.position.set(Math.random() * this.width - this.width / 2, 0.5, Math.random() * this.depth - this.depth / 2);
       box.castShadow = true;
       box.receiveShadow = true;
