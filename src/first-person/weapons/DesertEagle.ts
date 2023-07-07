@@ -5,15 +5,14 @@ import { Vector3 } from 'three';
 import GUI from 'lil-gui';
 
 export class DesertEagle extends Weapon {
-  protected weaponOffset = new Vector3(0.48, -0.16, -1.01);
-  protected weaponRotation = new Vector3(0.061, 3.23, -0.02);
-
   public readonly bullet = new Bullet({
     speed: 0.05,
-    size: 1 / 8,
+    size: 12.7 / 1000, // 12.7mm, 1 block is equivalent to 1 meter, 1 block = 1 meter
     distance: 50,
     color: '#ff0000',
   });
+  protected weaponOffset = new Vector3(0.48, -0.16, -1.01);
+  protected weaponRotation = new Vector3(0.061, 3.23, -0.02);
 
   constructor(weapon: GLTF, gui: GUI) {
     super(weapon, {
@@ -24,10 +23,11 @@ export class DesertEagle extends Weapon {
     });
 
     this.setScale(1.8);
-    this.setFireRate(600);
+    this.setFireRate(800);
     this.setReloadTime(1500);
     this.setMagazineSize(7);
     this.setBullets(7);
+    this.setType('semi');
 
     this.addGui(gui);
   }

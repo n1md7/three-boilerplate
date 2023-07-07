@@ -5,15 +5,15 @@ import GUI from 'lil-gui';
 import { Bullet } from '@/src/first-person/components/Bullet';
 
 export class M60 extends Weapon {
-  protected weaponOffset = new Vector3(0.7684, -0.071, -1.19);
-  protected weaponRotation = new Vector3(0, Math.PI, 0);
-
   public readonly bullet = new Bullet({
     speed: 0.9,
-    size: 1 / 8,
+    size: 7.62 / 1000, //7.62mm
     distance: 160,
     color: '#afb0ff',
   });
+  protected weaponOffset = new Vector3(0.7684, -0.071, -1.19);
+  protected weaponRotation = new Vector3(0, Math.PI, 0);
+
   constructor(weapon: GLTF, gui: GUI) {
     super(weapon, {
       fire: 'ammo_skeleton|fire1',
@@ -23,10 +23,11 @@ export class M60 extends Weapon {
     });
 
     this.setScale(0.15);
-    this.setFireRate(300);
+    this.setFireRate(100);
     this.setReloadTime(3500);
     this.setMagazineSize(100);
     this.setBullets(34);
+    this.setType('auto');
 
     this.addGui(gui);
   }

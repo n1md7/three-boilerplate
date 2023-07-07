@@ -52,10 +52,10 @@ export class InputController extends EventTarget {
         this.isSpacePressed = true;
         break;
       case 'KeyF':
-        this.dispatchEvent(new Event('toggle-flashlight'));
+        this.dispatchEvent(new Event('flashlight:toggle'));
         break;
       case 'KeyR':
-        this.dispatchEvent(new Event('weapon-reload'));
+        this.dispatchEvent(new Event('weapon:reload'));
         break;
       case 'Digit1':
       case 'Digit2':
@@ -67,7 +67,7 @@ export class InputController extends EventTarget {
       case 'Digit8':
       case 'Digit9':
         this.dispatchEvent(
-          new CustomEvent('weapon-switch', {
+          new CustomEvent('weapon:switch', {
             detail: {
               weaponIndex: parseInt(event.code.slice(-1)) - 1,
             },

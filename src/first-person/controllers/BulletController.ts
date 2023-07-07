@@ -82,13 +82,6 @@ export class BulletController {
 
     // Add the sphere to the scene
     this.scene.add(sphere);
-
-    // Delay the removal of the sphere after a certain duration
-    const sphereDuration = 5000; // Adjust the duration as needed
-
-    setTimeout(() => {
-      this.scene.remove(sphere);
-    }, sphereDuration);
   }
 
   private highlightIntersectionObject(object: THREE.Object3D) {

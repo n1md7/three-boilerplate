@@ -12,7 +12,7 @@ type CreateType = {
 export class Bullet extends THREE.Mesh {
   readonly velocity = new THREE.Vector3();
   readonly shotFrom = new THREE.Vector3();
-  // Size of the bullet
+  // Size of the bullet, diameter (1 block is equivalent to 1 meter)
   readonly size: number = 0.1;
   // Speed of the bullet
   readonly speed: number = 0.1;
@@ -35,7 +35,7 @@ export class Bullet extends THREE.Mesh {
     options.spread && (this.spread = options.spread);
     options.distance && (this.distance = options.distance);
 
-    this.geometry = new THREE.SphereGeometry(this.size, 8, 8);
+    this.geometry = new THREE.SphereGeometry(this.size / 2, 8, 8);
     this.material = new THREE.MeshBasicMaterial({ color: this.color });
   }
 

@@ -9,26 +9,21 @@ export type FireMode = 'auto' | 'semi';
 export type AnimationNameMap = Record<AnimationName, string>;
 
 export abstract class Weapon {
+  public abstract readonly bullet: Bullet;
   protected readonly shootAnimation: AnimationAction;
   protected readonly reloadAnimation: AnimationAction;
   protected readonly idleAnimation: AnimationAction;
   protected readonly walkAnimation: AnimationAction;
   protected readonly animationMixer: AnimationMixer;
-
   protected abstract weaponOffset: Vector3; // Offset of weapon from camera
   protected abstract weaponRotation: Vector3; // Rotation of weapon
-
   protected fireRate = 1000; // 1000ms delay between shots
   protected reloadTime = 3000; // 3000ms reload time
   protected magazineSize = 7; // 7 bullets per magazine by default
   protected bullets = 7; // Current bullets in magazine
-
+  protected type: FireMode = 'semi';
   private lastShot = Date.now(); // Last shot timestamp
   private reloading = false; // Is reloading
-
-  private fireMode: FireMode = 'semi';
-
-  public abstract readonly bullet: Bullet;
 
   protected constructor(protected readonly weapon: GLTF, animationNames: AnimationNameMap) {
     this.animationMixer = new AnimationMixer(weapon.scene);
@@ -37,6 +32,21 @@ export abstract class Weapon {
     this.reloadAnimation = this.getAnimation(animationNames.reload);
     this.idleAnimation = this.getAnimation(animationNames.idle);
     this.walkAnimation = this.getAnimation(animationNames.walk);
+  }
+
+  get isSemiAutomatic(): boolean {
+    return this.type === 'semi';
+  }
+
+  get isAutomatic(): boolean {
+    return this.type === 'auto';
+  }
+
+  get effectiveDistance(): number {
+    // Perhaps my grid helper is displaying the wrong distance
+    // but this seems to work correctly when divided by 2
+    // GridHelper block size seems to be equal to 2 🤨 ?
+    return this.bullet.distance / 2;
   }
 
   hide(): void {
@@ -93,6 +103,10 @@ export abstract class Weapon {
     this.weapon.scene.scale.set(scale, scale, scale);
   }
 
+  setType(type: FireMode) {
+    this.type = type;
+  }
+
   setMagazineSize(magazineSize: number) {
     this.magazineSize = magazineSize;
   }
@@ -103,25 +117,16 @@ export abstract class Weapon {
     this.reloadAnimation.setLoop(LoopOnce, 1);
   }
 
+  /**
+   * Sets the fire rate of the weapon.
+   *
+   * It is a delay in millis. less is faster. more is slower.
+   * @param fireRate
+   */
   setFireRate(fireRate: number) {
     this.fireRate = fireRate;
     this.shootAnimation.setDuration(fireRate / 1000);
     this.shootAnimation.setLoop(LoopOnce, 1);
-  }
-
-  setFireMode(mode: FireMode) {
-    this.fireMode = mode;
-  }
-
-  getFireMode(): FireMode {
-    return this.fireMode;
-  }
-
-  get effectiveDistance(): number {
-    // Perhaps my grid helper is displaying the wrong distance
-    // but this seems to work correctly when divided by 2
-    // GridHelper block size seems to be equal to 2 🤨 ?
-    return this.bullet.distance / 2;
   }
 
   adjustBy(camera: Camera): void {

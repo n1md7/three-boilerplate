@@ -21,6 +21,8 @@ export class WeaponController {
   private readonly weapons: Weapon[];
   private weaponIndex: number;
 
+  public triggerIsPressed = false;
+
   constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera) {
     this.weapons = [
       new DesertEagle(assets.DesertEagle, gui.addFolder('Desert Eagle')),
@@ -67,9 +69,17 @@ export class WeaponController {
     this.weapon.show();
   }
 
-  shoot() {
-    if (this.weapon.shoot()) return !!this.bullet.shoot(this.weapon);
-    return false;
+  startShoot() {
+    this.triggerIsPressed = true;
+  }
+
+  stopShoot() {
+    this.triggerIsPressed = false;
+  }
+
+  private shoot() {
+    if (this.weapon.shoot()) this.bullet.shoot(this.weapon);
+    if (this.weapon.isSemiAutomatic) this.triggerIsPressed = false;
   }
 
   reload() {
@@ -81,6 +91,7 @@ export class WeaponController {
   }
 
   update(delta: number) {
+    if (this.triggerIsPressed) this.shoot();
     this.weapon.update(delta);
     this.bullet.update(this.weapon);
   }

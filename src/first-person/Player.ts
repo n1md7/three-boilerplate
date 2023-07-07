@@ -62,10 +62,11 @@ export class Player {
     this.inputController.subscribe();
     this.mouseController.subscribe();
 
-    this.inputController.addEventListener('toggle-flashlight', () => this.flashlight.toggle());
-    this.mouseController.addEventListener('weapon-shoot', () => this.weapon.shoot());
-    this.inputController.addEventListener('weapon-reload', () => this.weapon.reload());
-    this.inputController.addEventListener('weapon-switch', (event) => {
+    this.inputController.addEventListener('flashlight:toggle', () => this.flashlight.toggle());
+    this.mouseController.addEventListener('weapon:start-shoot', () => this.weapon.startShoot());
+    this.mouseController.addEventListener('weapon:stop-shoot', () => this.weapon.stopShoot());
+    this.inputController.addEventListener('weapon:reload', () => this.weapon.reload());
+    this.inputController.addEventListener('weapon:switch', (event) => {
       if (event instanceof CustomEvent) {
         this.weapon.setWeapon(event.detail.weaponIndex);
       }

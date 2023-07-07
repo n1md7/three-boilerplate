@@ -10,7 +10,7 @@ export class MouseController extends EventTarget {
 
   subscribe() {
     document.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
-    document.addEventListener('click', this.mouseClickHandler.bind(this));
+    document.addEventListener('mousedown', this.mouseClickHandler.bind(this));
     document.addEventListener('mouseup', this.mouseReleaseHandler.bind(this));
   }
 
@@ -31,12 +31,12 @@ export class MouseController extends EventTarget {
   }
 
   private mouseClickHandler() {
-    // Not implemented
+    if (document.pointerLockElement !== null) {
+      this.dispatchEvent(new Event('weapon:start-shoot'));
+    }
   }
 
   private mouseReleaseHandler() {
-    if (document.pointerLockElement !== null) {
-      this.dispatchEvent(new Event('weapon-shoot'));
-    }
+    this.dispatchEvent(new Event('weapon:stop-shoot'));
   }
 }
