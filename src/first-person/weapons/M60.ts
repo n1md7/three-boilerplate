@@ -23,7 +23,7 @@ export class M60 extends Weapon {
     });
 
     this.setScale(0.15);
-    this.setFireRate(100);
+    this.setFireRate(160);
     this.setReloadTime(3500);
     this.setMagazineSize(100);
     this.setBullets(34);
