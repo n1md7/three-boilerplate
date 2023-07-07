@@ -1,16 +1,17 @@
 export class CrosshairController {
   private static instance: CrosshairController;
-  private crosshair: HTMLDivElement;
+  private readonly crosshair: HTMLDivElement;
+  private accuracy = 100;
 
   private constructor() {
     this.crosshair = document.createElement('div');
     this.crosshair.setAttribute('class', 'crosshair');
     this.crosshair.setAttribute('hidden', '');
     this.crosshair.innerHTML = `
-      <div class="line-horizontal left"></div>
-      <div class="line-horizontal right"></div>
-      <div class="line-vertical top"></div>
-      <div class="line-vertical bottom"></div>
+      <div class='line-horizontal left'></div>
+      <div class='line-horizontal right'></div>
+      <div class='line-vertical top'></div>
+      <div class='line-vertical bottom'></div>
     `;
 
     document.body.appendChild(this.crosshair);
@@ -33,10 +34,15 @@ export class CrosshairController {
   }
 
   setAccuracy(accuracy: number): void {
-    this.crosshair.setAttribute('class', 'crosshair ' + `accuracy-${this.getAccuracy(accuracy)}`);
+    this.accuracy = this.calculateAccuracy(accuracy);
+    this.crosshair.setAttribute('class', 'crosshair ' + `accuracy-${this.accuracy}`);
   }
 
-  private getAccuracy(accuracy: number) {
+  getAccuracy() {
+    return this.accuracy;
+  }
+
+  private calculateAccuracy(accuracy: number) {
     // Values are 25, 50, 75 and 100
     // Clamp it to the closest value upwards
     if (accuracy <= 25) return 25;

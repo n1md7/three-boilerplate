@@ -2,24 +2,34 @@ import * as THREE from 'three';
 import { LinkedList } from '@/src/dsa/LinkedList';
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
+import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 
 export class BulletController {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.Camera;
 
   private readonly bullets: LinkedList<Bullet>;
+  private readonly crosshair: CrosshairController;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera) {
     this.scene = scene;
     this.camera = camera;
     this.bullets = new LinkedList();
+    this.crosshair = CrosshairController.getInstance();
   }
 
   shoot(weapon: Weapon) {
     const direction = new THREE.Vector3();
     // Get the direction the camera is facing
-    // But add a bit of distance to the direction to make it look like the bullet is coming out of the barrel
+    // But add a bit of distance to the direction
+    // to make it look like the bullet is coming out of the barrel
     this.camera.getWorldDirection(direction);
+    // Add a little bit of direction accuracy change based on the crosshair accuracy value
+    // 5% is always inaccurate even though the crosshair is set to 100%
+    const accuracy = (this.crosshair.getAccuracy() - 100 || 5) / 1000;
+    direction.x += (Math.random() - 0.5) * accuracy;
+    direction.y += (Math.random() - 0.5) * accuracy;
+    direction.z += (Math.random() - 0.5) * accuracy;
 
     const bullet = Bullet.from(weapon.bullet);
     // Set the bullet's position to the camera's position minus tiny bit of distance
