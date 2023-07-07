@@ -4,8 +4,8 @@ import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 
 export class BulletController {
-  private scene: THREE.Scene;
-  private camera: THREE.Camera;
+  private readonly scene: THREE.Scene;
+  private readonly camera: THREE.Camera;
 
   private readonly bullets: LinkedList<Bullet>;
 
@@ -33,13 +33,19 @@ export class BulletController {
 
   update() {
     // Adjust the desired distance threshold
-    const distanceThreshold = 64; // units, effectively the range of the weapon
+    const distanceThreshold = 5; // units, effectively the range of the weapon
 
     for (const bullet of this.bullets) {
       // Animates the bullet by moving it the original direction
       bullet.update();
 
       const intersections = this.detectIntersections(bullet);
+
+      if (bullet.position.distanceTo(bullet.shotAt) > distanceThreshold) {
+        this.scene.remove(bullet);
+        this.bullets.remove(bullet);
+        continue;
+      }
 
       // When bullet collides with an object, highlight it
       for (const intersection of intersections) {
