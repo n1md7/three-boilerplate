@@ -11,7 +11,7 @@ export class M60 extends Weapon {
     distance: 160,
     color: '#afb0ff',
   });
-  protected weaponOffset = new Vector3(0.7684, -0.071, -1.19);
+  protected weaponOffset = new Vector3(0.7684, -0.29, -0.5);
   protected weaponRotation = new Vector3(0, Math.PI, 0);
 
   constructor(weapon: GLTF, gui: GUI) {

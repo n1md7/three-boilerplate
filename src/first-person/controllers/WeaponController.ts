@@ -4,11 +4,7 @@ import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { DesertEagle } from '@/src/first-person/weapons/DesertEagle';
 import { Assets } from '@/src/first-person/Player';
 import { PointLight, Scene } from 'three';
-import { M4A1 } from '@/src/first-person/weapons/M4A1';
-import { AK47 } from '@/src/first-person/weapons/AK47';
 import { M60 } from '@/src/first-person/weapons/M60';
-import { M82 } from '@/src/first-person/weapons/M82';
-import { MP412 } from '@/src/first-person/weapons/MP412';
 import { BulletController } from '@/src/first-person/controllers/BulletController';
 
 export class WeaponController {
@@ -26,17 +22,13 @@ export class WeaponController {
   constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera) {
     this.weapons = [
       new DesertEagle(assets.DesertEagle, gui.addFolder('Desert Eagle')),
-      new M4A1(assets.M4A1, gui.addFolder('M4A1')),
-      new AK47(assets.AK47, gui.addFolder('AK47')),
       new M60(assets.M60, gui.addFolder('M60')),
-      new MP412(assets.MP412, gui.addFolder('MP412')),
-      new M82(assets.M82, gui.addFolder('M82')),
     ];
     this.weaponIndex = 0;
     this.bulletController = new BulletController(playerScene, playerCamera);
 
     this.scene = new Scene();
-    this.camera = new Camera(55);
+    this.camera = new Camera(55, 65);
     this.backlight = this.createLight();
 
     // No need to add the camera to the scene

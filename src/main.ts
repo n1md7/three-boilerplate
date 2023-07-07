@@ -19,14 +19,10 @@ import '@/src/styles/style.css';
     aIMAGE.load('images/box.png'),
     aGLTF.load('3d/sky_pano/scene.gltf'),
     aGLTF.load('3d/desert-eagle/scene.gltf'),
-    aGLTF.load('3d/m4a1/scene.gltf'),
-    aGLTF.load('3d/ak47/scene.gltf'),
     aGLTF.load('3d/m60/scene.gltf'),
-    aGLTF.load('3d/m82/scene.gltf'),
-    aGLTF.load('3d/mp412/scene.gltf'),
   ]);
 
-  const [desertEagleGLTF, m4a1GLTF, ak47GLTF, m60GLTF, m82GLTF, mp412GLTF] = guns;
+  const [desertEagleGLTF, m60GLTF] = guns;
 
   const gui = new GUI();
   const world = new Octree();
@@ -38,11 +34,7 @@ import '@/src/styles/style.css';
 
   const player = new Player(camera, world, scene, gui.addFolder('Player'), {
     DesertEagle: desertEagleGLTF,
-    M4A1: m4a1GLTF,
-    AK47: ak47GLTF,
     M60: m60GLTF,
-    M82: m82GLTF,
-    MP412: mp412GLTF,
   });
 
   scene
