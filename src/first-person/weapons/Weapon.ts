@@ -147,36 +147,27 @@ export abstract class Weapon {
   }
 
   protected addGui(gui: GUI): void {
-    gui.add(this, 'fireRate', this.fireRate).step(1).name('fireRate (ms)').min(100).max(2000);
-    gui.add(this, 'reloadTime', this.reloadTime).step(1).name('reloadTime (ms)').min(100).max(7500);
-    gui.add(this, 'magazineSize', this.magazineSize).step(1).name('magazineSize').min(7).max(200);
+    const properties = gui.addFolder('Properties');
 
-    gui.add(this.weaponOffset, 'x', this.weaponOffset.x).step(0.01).min(-8).max(8).name('offsetX');
-    gui.add(this.weaponOffset, 'y', this.weaponOffset.y).step(0.01).min(-8).max(8).name('offsetY');
-    gui.add(this.weaponOffset, 'z', this.weaponOffset.z).step(0.01).min(-8).max(8).name('offsetZ');
+    properties.add(this, 'fireRate', this.fireRate).step(1).name('fireRate (ms)').min(100).max(2000);
+    properties.add(this, 'reloadTime', this.reloadTime).step(1).name('reloadTime (ms)').min(100).max(7500);
+    properties.add(this, 'magazineSize', this.magazineSize).step(1).name('magazineSize').min(7).max(200);
 
-    gui
-      .add(this.weaponRotation, 'x', this.weaponRotation.x)
-      .step(0.01)
-      .min(-Math.PI)
-      .max(2 * Math.PI)
-      .name('rotationX');
-    gui
-      .add(this.weaponRotation, 'y', this.weaponRotation.y)
-      .step(0.01)
-      .min(-Math.PI)
-      .max(2 * Math.PI)
-      .name('rotationY');
-    gui
-      .add(this.weaponRotation, 'z', this.weaponRotation.z)
-      .step(0.01)
-      .min(-Math.PI)
-      .max(2 * Math.PI)
-      .name('rotationZ');
+    const offset = gui.addFolder('Offset');
+    offset.add(this.weaponOffset, 'x', this.weaponOffset.x).step(0.01).min(-8).max(8);
+    offset.add(this.weaponOffset, 'y', this.weaponOffset.y).step(0.01).min(-8).max(8);
+    offset.add(this.weaponOffset, 'z', this.weaponOffset.z).step(0.01).min(-8).max(8);
 
-    gui.add(this.weapon.scene.scale, 'x', this.weapon.scene.scale.x).step(0.01).min(0.1).max(4).name('scaleX');
-    gui.add(this.weapon.scene.scale, 'y', this.weapon.scene.scale.y).step(0.01).min(0.1).max(4).name('scaleY');
-    gui.add(this.weapon.scene.scale, 'z', this.weapon.scene.scale.z).step(0.01).min(0.1).max(4).name('scaleZ');
+    const rotation = gui.addFolder('Rotation');
+
+    rotation.add(this.weaponRotation, 'x', this.weaponRotation.x).step(0.01).min(-Math.PI).max(7);
+    rotation.add(this.weaponRotation, 'y', this.weaponRotation.y).step(0.01).min(-Math.PI).max(7);
+    rotation.add(this.weaponRotation, 'z', this.weaponRotation.z).step(0.01).min(-Math.PI).max(7);
+
+    const scale = gui.addFolder('Scale');
+    scale.add(this.weapon.scene.scale, 'x', this.weapon.scene.scale.x).step(0.01).min(0.1).max(4);
+    scale.add(this.weapon.scene.scale, 'y', this.weapon.scene.scale.y).step(0.01).min(0.1).max(4);
+    scale.add(this.weapon.scene.scale, 'z', this.weapon.scene.scale.z).step(0.01).min(0.1).max(4);
 
     gui.close();
   }
