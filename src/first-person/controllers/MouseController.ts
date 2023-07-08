@@ -27,6 +27,9 @@ export class MouseController extends EventTarget {
     this.camera.rotation.y -= movementX * this.mouseSensitivity;
     this.camera.rotation.x -= movementY * this.mouseSensitivity;
 
+    // INFO: clamp camera rotation on X axis
+    this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+
     this.flashlight.adjustBy(this.camera);
   }
 
