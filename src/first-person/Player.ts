@@ -189,6 +189,7 @@ export class Player {
 
     const { sprint, jump, move } = this.inputController.says;
 
+    if (this.weapon.triggerIsPressed) this.accuracy -= 50;
     if (move.anyDirection) this.accuracy -= 25 + (sprint ? 25 : 0);
     if (jump) this.accuracy -= 50;
     this.crosshairController.setAccuracy(this.accuracy);
