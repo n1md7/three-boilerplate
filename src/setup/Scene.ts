@@ -2,9 +2,12 @@ import { GUI } from 'lil-gui';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { AxesHelper, GridHelper, PointLight } from 'three';
-import { Texture, RepeatWrapping, DoubleSide } from 'three';
+import { Texture, RepeatWrapping } from 'three';
 import { Scene as ThreeScene, Color, Fog, PointLightHelper } from 'three';
-import { PlaneGeometry, MeshStandardMaterial, Mesh, BoxGeometry } from 'three';
+import { MeshStandardMaterial, Mesh, BoxGeometry } from 'three';
+import { Ground } from '@/src/setup/scene/components/Ground';
+import { Box } from '@/src/setup/scene/components/Box';
+import { Target } from '@/src/setup/scene/components/Target';
 
 export default class Scene extends ThreeScene {
   constructor(
@@ -53,22 +56,7 @@ export default class Scene extends ThreeScene {
   }
 
   addGround(texture: Texture) {
-    texture.wrapS = RepeatWrapping;
-    texture.wrapT = RepeatWrapping;
-    texture.repeat.set(this.width / 8, this.depth / 8);
-
-    const ground = new Mesh(
-      new PlaneGeometry(256, 256),
-      new MeshStandardMaterial({
-        map: texture,
-        side: DoubleSide,
-      })
-    );
-    ground.rotateX(-Math.PI / 2);
-    ground.position.y = -0.01;
-    ground.receiveShadow = true;
-
-    this.world.fromGraphNode(ground);
+    const ground = new Ground(texture, this.world, this.width, this.depth);
     this.add(ground);
 
     return this;
@@ -83,13 +71,9 @@ export default class Scene extends ThreeScene {
 
   addBoxes(texture: Texture, count = 16) {
     const map = texture.clone();
-    // Add random boxes around the ground
-    const boxGeometry = new BoxGeometry(1, 1, 1);
-    const boxMaterial = new MeshStandardMaterial({ map });
 
     for (const _ of Array(count).keys()) {
-      const box = new Mesh(boxGeometry, boxMaterial);
-      box.name = 'mother-fucking-box';
+      const box = new Box(map);
       box.position.set(Math.random() * this.width - this.width / 2, 0.5, Math.random() * this.depth - this.depth / 2);
       box.castShadow = true;
       box.receiveShadow = true;
@@ -121,6 +105,16 @@ export default class Scene extends ThreeScene {
       this.world.fromGraphNode(box);
       this.add(box);
     }
+
+    return this;
+  }
+
+  addShootingTarget(gltf: GLTF) {
+    const target = new Target();
+    target.position.set(0, -1, -32);
+    target.scale.set(0.5, 0.5, 0.5);
+    target.add(gltf.scene);
+    this.add(target);
 
     return this;
   }

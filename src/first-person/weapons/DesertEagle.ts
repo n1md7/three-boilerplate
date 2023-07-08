@@ -9,7 +9,7 @@ export class DesertEagle extends Weapon {
     speed: 0.05,
     size: 12.7 / 1000, // 12.7mm, 1 block is equivalent to 1 meter, 1 block = 1 meter
     distance: 50,
-    color: '#ff0000',
+    color: '#faed06',
   });
   protected weaponOffset = new Vector3(0.48, -0.16, -1.01);
   protected weaponRotation = new Vector3(0.061, 3.23, -0.02);

@@ -9,7 +9,7 @@ export class M60 extends Weapon {
     speed: 0.9,
     size: 7.62 / 1000, //7.62mm
     distance: 160,
-    color: '#afb0ff',
+    color: '#73fd02',
   });
   protected weaponOffset = new Vector3(0.7684, -0.29, -0.5);
   protected weaponRotation = new Vector3(0, Math.PI, 0);

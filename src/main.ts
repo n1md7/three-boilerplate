@@ -14,12 +14,12 @@ import '@/src/styles/style.css';
 (async function setup() {
   const aGLTF = new MyGLTFLoader();
   const aIMAGE = new MyTextureLoader();
-  const [groundTexture, boxTexture, skyGLTF, ...guns] = await Promise.all([
+  const [groundTexture, boxTexture, skyGLTF, shootingTargetGLTF, guns] = await Promise.all([
     aIMAGE.load('images/checker.png'),
     aIMAGE.load('images/box.png'),
     aGLTF.load('3d/sky_pano/scene.gltf'),
-    aGLTF.load('3d/desert-eagle/scene.gltf'),
-    aGLTF.load('3d/m60/scene.gltf'),
+    aGLTF.load('3d/shooting-target/scene.gltf'),
+    Promise.all([aGLTF.load('3d/desert-eagle/scene.gltf'), aGLTF.load('3d/m60/scene.gltf')]),
   ]);
 
   const [desertEagleGLTF, m60GLTF] = guns;
@@ -44,6 +44,7 @@ import '@/src/styles/style.css';
     .addAxisHelper()
     .addGridHelper()
     .addStairs(boxTexture)
+    .addShootingTarget(shootingTargetGLTF)
     .addBoxes(boxTexture, 64);
 
   {

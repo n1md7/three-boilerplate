@@ -3,6 +3,7 @@ import { LinkedList } from '@/src/dsa/LinkedList';
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
+import { RigidBody } from '@/src/abstract/RigidBody';
 
 export class BulletController {
   private readonly scene: THREE.Scene;
@@ -51,14 +52,17 @@ export class BulletController {
 
       if (bullet.isEffective(weapon)) {
         for (const intersection of this.detectIntersections(bullet)) {
-          // If object is a mesh, highlight it
-          if (intersection.object instanceof THREE.Mesh) {
-            this.highlightIntersectionPoint(intersection.point, bullet);
-            this.highlightIntersectionObject(intersection.object);
-            this.removeBullet(bullet);
+          // Whitelist of objects that can NOT be hit
+          const isAxisHelper = intersection.object instanceof THREE.AxesHelper;
+          const isGridHelper = intersection.object instanceof THREE.GridHelper;
+          if (isAxisHelper || isGridHelper) continue;
 
-            continue BulletLoop; // One bullet can only hit one object
-          }
+          // Objects that can be hit
+          this.highlightIntersectionPoint(intersection.point, bullet);
+          this.highlightIntersectionObject(intersection.object);
+          this.removeBullet(bullet);
+
+          continue BulletLoop; // One bullet can only hit one object
         }
       }
 
@@ -98,15 +102,13 @@ export class BulletController {
     // Create a new material with a brighter color
     const highlightMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
 
-    if (object instanceof THREE.Mesh) {
-      if (object.name === 'mother-fucking-box') {
-        // Change the material of the object to the new material
-        object.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.material = highlightMaterial;
-          }
-        });
-      }
+    if (object instanceof RigidBody) {
+      // Change the material of the object to the new material
+      object.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.material = highlightMaterial;
+        }
+      });
     }
   }
 }
