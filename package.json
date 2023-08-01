@@ -79,7 +79,7 @@
     "testEnvironment": "node"
   },
   "engines": {
-    "node": "18.15.0",
+    "node": "18.17.0",
     "npm": ">=9.0.0"
   },
   "engineStrict": true
