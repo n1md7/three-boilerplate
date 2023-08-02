@@ -8,11 +8,13 @@ import { MeshStandardMaterial, Mesh, BoxGeometry } from 'three';
 import { Ground } from '@/src/setup/scene/components/Ground';
 import { Box } from '@/src/setup/scene/components/Box';
 import { Target } from '@/src/setup/scene/components/Target';
+import * as CANNON from 'cannon-es';
 
 export default class Scene extends ThreeScene {
   constructor(
     private readonly gui: GUI,
-    private readonly world: Octree,
+    private readonly collisionWorld: Octree,
+    private readonly physicsWorld: CANNON.World,
     private readonly width = 100,
     private readonly depth = 100
   ) {
@@ -56,7 +58,7 @@ export default class Scene extends ThreeScene {
   }
 
   addGround(texture: Texture) {
-    const ground = new Ground(texture, this.world, this.width, this.depth);
+    const ground = new Ground(texture, this.collisionWorld, this.width, this.depth);
     this.add(ground);
 
     return this;
@@ -74,10 +76,11 @@ export default class Scene extends ThreeScene {
 
     for (const _ of Array(count).keys()) {
       const box = new Box(map);
-      box.position.set(Math.random() * this.width - this.width / 2, 0.5, Math.random() * this.depth - this.depth / 2);
+      box.body.position.set(Math.random() * this.width - this.width / 2, 10.5, Math.random() * this.depth - this.depth / 2);
       box.castShadow = true;
       box.receiveShadow = true;
-      this.world.fromGraphNode(box);
+      this.collisionWorld.fromGraphNode(box);
+      this.physicsWorld.addBody(box.body);
       this.add(box);
     }
 
@@ -102,7 +105,7 @@ export default class Scene extends ThreeScene {
       box.position.set(-this.width / 2 + 2, i * 0.5, -this.depth / 2 + 2 + i);
       box.castShadow = true;
       box.receiveShadow = true;
-      this.world.fromGraphNode(box);
+      this.collisionWorld.fromGraphNode(box);
       this.add(box);
     }
 

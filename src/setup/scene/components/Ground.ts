@@ -27,4 +27,6 @@ export class Ground extends RigidBody {
 
     this.world.fromGraphNode(ground);
   }
+
+  update() {}
 }

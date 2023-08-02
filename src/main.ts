@@ -4,10 +4,12 @@ import { WindowUtils } from '@/src/setup/utils/window.utils';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Renderer, Camera, Scene } from '@/src/setup';
+import { RigidBody } from '@/src/abstract/RigidBody';
 import { Player } from '@/src/first-person/Player';
 import { Debug } from '@/src/setup/utils/common';
 import { Clock } from 'three';
 import GUI from 'lil-gui';
+import * as CANNON from 'cannon-es';
 
 import '@/src/styles/style.css';
 
@@ -25,14 +27,25 @@ import '@/src/styles/style.css';
   const [desertEagleGLTF, m60GLTF] = guns;
 
   const gui = new GUI();
-  const world = new Octree();
+  const collisionWorld = new Octree();
+  const physicsWorld = new CANNON.World({
+    gravity: new CANNON.Vec3(0, -9.82, 0), // m/s²
+  });
   const renderer = new Renderer();
   const camera = new Camera();
-  const scene = new Scene(gui.addFolder('Main scene'), world);
+  const scene = new Scene(gui.addFolder('Main scene'), collisionWorld, physicsWorld);
+
+  const groundBody = new CANNON.Body({
+    type: CANNON.Body.STATIC, // can also be achieved by setting the mass to 0
+    shape: new CANNON.Plane(),
+  });
+  groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
+  physicsWorld.addBody(groundBody);
+  groundBody.position.y = -0.5;
 
   gui.show(Debug.enabled());
 
-  const player = new Player(camera, world, scene, gui.addFolder('Player'), {
+  const player = new Player(camera, collisionWorld, scene, gui.addFolder('Player'), {
     DesertEagle: desertEagleGLTF,
     M60: m60GLTF,
   });
@@ -60,10 +73,17 @@ import '@/src/styles/style.css';
     })();
     (function gameLoop() {
       performance.start();
+      physicsWorld.fixedStep(1 / FPS);
       const delta = clock.getDelta();
       if (timestamp.delta >= DELAY_MS) {
         player.update(delta);
         if (camera.position.y <= -25) player.reset();
+
+        for (const child of scene.children) {
+          if (child instanceof RigidBody) {
+            child.update();
+          }
+        }
 
         timestamp.update();
 

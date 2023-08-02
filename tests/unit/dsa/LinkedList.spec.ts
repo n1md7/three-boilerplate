@@ -1,4 +1,4 @@
-import { LinkedList } from '@/src/dsa/LinkedList';
+import { LinkedList } from '../../../src/data-structures/LinkedList';
 
 describe('LinkedList', () => {
   let linkedList;

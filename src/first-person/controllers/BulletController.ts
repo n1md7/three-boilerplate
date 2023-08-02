@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import { LinkedList } from '@/src/dsa/LinkedList';
+import * as CANNON from 'cannon-es';
+import { LinkedList } from '@/src/data-structures/LinkedList';
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 import { RigidBody } from '@/src/abstract/RigidBody';
+import { Box } from '@/src/setup/scene/components/Box';
 
 export class BulletController {
   private readonly scene: THREE.Scene;
@@ -59,7 +61,7 @@ export class BulletController {
 
           // Objects that can be hit
           this.highlightIntersectionPoint(intersection.point, bullet);
-          this.highlightIntersectionObject(intersection.object);
+          this.applyForce(intersection, bullet);
           this.removeBullet(bullet);
 
           continue BulletLoop; // One bullet can only hit one object
@@ -98,17 +100,15 @@ export class BulletController {
     this.scene.add(sphere);
   }
 
-  private highlightIntersectionObject(object: THREE.Object3D) {
-    // Create a new material with a brighter color
-    const highlightMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
-
-    if (object instanceof RigidBody) {
-      // Change the material of the object to the new material
-      object.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.material = highlightMaterial;
-        }
-      });
+  private applyForce(intersection: THREE.Intersection, bullet: Bullet) {
+    if (intersection.object instanceof RigidBody) {
+      if (intersection.object instanceof Box) {
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        intersection.object.body.applyImpulse(
+          new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage)
+        );
+      }
     }
   }
 }
