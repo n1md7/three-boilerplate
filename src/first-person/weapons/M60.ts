@@ -9,7 +9,7 @@ export class M60 extends Weapon {
     speed: 0.9,
     size: 7.62 / 1000, // 7.62mm
     distance: 160,
-    damage: 20, // using as a force multiplier
+    damage: 16, // using as a force multiplier
     color: '#73fd02',
   });
   protected weaponOffset = new Vector3(0.7684, -0.29, -0.5);
