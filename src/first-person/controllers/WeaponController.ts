@@ -6,6 +6,7 @@ import { Assets } from '@/src/first-person/Player';
 import { PointLight, Scene } from 'three';
 import { M60 } from '@/src/first-person/weapons/M60';
 import { BulletController } from '@/src/first-person/controllers/BulletController';
+import * as CANNON from 'cannon-es';
 
 export class WeaponController {
   // Weapon own 2nd scene
@@ -19,13 +20,13 @@ export class WeaponController {
 
   public triggerIsPressed = false;
 
-  constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera) {
+  constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera, physicsWorld: CANNON.World) {
     this.weapons = [
       new DesertEagle(assets.DesertEagle, gui.addFolder('Desert Eagle')),
       new M60(assets.M60, gui.addFolder('M60')),
     ];
     this.weaponIndex = 0;
-    this.bulletController = new BulletController(playerScene, playerCamera);
+    this.bulletController = new BulletController(playerScene, playerCamera, physicsWorld);
 
     this.scene = new Scene();
     this.camera = new Camera(55, 65);

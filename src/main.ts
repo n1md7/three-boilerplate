@@ -45,7 +45,7 @@ import '@/src/styles/style.css';
 
   gui.show(Debug.enabled());
 
-  const player = new Player(camera, collisionWorld, scene, gui.addFolder('Player'), {
+  const player = new Player(camera, collisionWorld, scene, physicsWorld, gui.addFolder('Player'), {
     DesertEagle: desertEagleGLTF,
     M60: m60GLTF,
   });

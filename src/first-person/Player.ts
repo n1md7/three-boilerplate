@@ -8,6 +8,7 @@ import { CrosshairController } from '@/src/first-person/controllers/CrosshairCon
 import { WeaponController } from '@/src/first-person/controllers/WeaponController';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { Scene, Camera } from '@/src/setup';
+import * as CANNON from 'cannon-es';
 import GUI from 'lil-gui';
 
 export type WeaponName = 'DesertEagle' | 'M60'; // | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife'
@@ -34,6 +35,7 @@ export class Player {
     private readonly camera: Camera,
     private readonly world: Octree,
     private readonly scene: Scene,
+    physicsWorld: CANNON.World,
     gui: GUI,
     assets: Assets
   ) {
@@ -43,7 +45,7 @@ export class Player {
     this.playerVelocity = new Vector3();
     this.inputController = new InputController();
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
-    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets, scene, camera);
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets, scene, camera, physicsWorld);
     this.mouseController = new MouseController(camera, this.flashlight);
     this.crosshairController = CrosshairController.getInstance();
 

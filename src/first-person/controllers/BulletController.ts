@@ -13,10 +13,13 @@ export class BulletController {
 
   private readonly bullets: LinkedList<Bullet>;
   private readonly crosshair: CrosshairController;
+  private readonly physicsWorld: CANNON.World;
+  private readonly bulletHoles: { sphere: THREE.Mesh; body: CANNON.Body }[] = [];
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera) {
+  constructor(scene: THREE.Scene, camera: THREE.Camera, physicsWorld: CANNON.World) {
     this.scene = scene;
     this.camera = camera;
+    this.physicsWorld = physicsWorld;
     this.bullets = new LinkedList();
     this.crosshair = CrosshairController.getInstance();
   }
@@ -47,6 +50,13 @@ export class BulletController {
   }
 
   update(weapon: Weapon) {
+    for (const { body, sphere } of this.bulletHoles) {
+      // Position the sphere at the collision point
+      sphere.position.setX(body.position.x);
+      sphere.position.setY(body.position.y);
+      sphere.position.setZ(body.position.z);
+    }
+
     // Adjust the desired distance threshold
     BulletLoop: for (const bullet of this.bullets) {
       // Animates the bullet by moving it the original direction
@@ -93,8 +103,18 @@ export class BulletController {
     const sphereGeometry = new THREE.SphereGeometry(bullet.size, 8, 8);
     const sphere = new THREE.Mesh(sphereGeometry, highlightMaterial);
 
-    // Position the sphere at the collision point
-    sphere.position.copy(position);
+    // Create a Cannon.js body for the intersection point (a static body since it's just a marker)
+    const intersectionBody = new CANNON.Body({
+      mass: CANNON.Body.STATIC, // No mass
+      shape: new CANNON.Sphere(bullet.size), // Match the sphere size
+      position: new CANNON.Vec3(position.x, position.y, position.z), // Set initial position
+    });
+
+    // Add the body to the Cannon.js world
+    this.physicsWorld.addBody(intersectionBody);
+
+    // Save the sphere and body to an array
+    this.bulletHoles.push({ sphere, body: intersectionBody });
 
     // Add the sphere to the scene
     this.scene.add(sphere);
