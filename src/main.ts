@@ -41,7 +41,6 @@ import '@/src/styles/style.css';
   });
   groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
   physicsWorld.addBody(groundBody);
-  groundBody.position.y = -0.5;
 
   gui.show(Debug.enabled());
 
@@ -54,8 +53,8 @@ import '@/src/styles/style.css';
     .addLight()
     .addGround(groundTexture)
     .addSky(skyGLTF)
-    .addAxisHelper()
-    .addGridHelper()
+    // .addAxisHelper()
+    // .addGridHelper()
     .addStairs(boxTexture)
     .addShootingTarget(shootingTargetGLTF)
     .addBoxes(boxTexture, 64);

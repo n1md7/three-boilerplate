@@ -14,7 +14,7 @@ export class BulletController {
   private readonly bullets: LinkedList<Bullet>;
   private readonly crosshair: CrosshairController;
   private readonly physicsWorld: CANNON.World;
-  private readonly bulletHoles: { sphere: THREE.Mesh; body: CANNON.Body }[] = [];
+  private bulletHoles: { sphere: THREE.Mesh; body: CANNON.Body; timestamp: number }[] = [];
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, physicsWorld: CANNON.World) {
     this.scene = scene;
@@ -50,6 +50,11 @@ export class BulletController {
   }
 
   update(weapon: Weapon) {
+    this.bulletHoles = this.bulletHoles.filter(({ timestamp, sphere }) => {
+      const condition = timestamp + 12000 > Date.now(); // 12 seconds
+      if (!condition) sphere.removeFromParent();
+      return condition;
+    });
     for (const { body, sphere } of this.bulletHoles) {
       // Position the sphere at the collision point
       sphere.position.setX(body.position.x);
@@ -114,7 +119,7 @@ export class BulletController {
     this.physicsWorld.addBody(intersectionBody);
 
     // Save the sphere and body to an array
-    this.bulletHoles.push({ sphere, body: intersectionBody });
+    this.bulletHoles.push({ sphere, body: intersectionBody, timestamp: Date.now() });
 
     // Add the sphere to the scene
     this.scene.add(sphere);

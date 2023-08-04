@@ -75,7 +75,7 @@ export default class Scene extends ThreeScene {
     const map = texture.clone();
 
     for (const _ of Array(count).keys()) {
-      const box = new Box(map);
+      const box = new Box(map, Math.random() * 2 + 0.5);
       box.body.position.set(Math.random() * this.width - this.width / 2, 10.5, Math.random() * this.depth - this.depth / 2);
       box.castShadow = true;
       box.receiveShadow = true;
