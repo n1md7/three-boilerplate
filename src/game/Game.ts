@@ -4,15 +4,18 @@ import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Renderer, Camera, Scene } from '@/src/setup';
 import { RigidBody } from '@/src/abstract/RigidBody';
+import { State } from '@/src/game/types/state.interface';
+import { ActiveState } from '@/src/game/states/Active';
+import { PausedState } from '@/src/game/states/Paused';
 import { Player } from '@/src/first-person/Player';
 import { Debug } from '@/src/setup/utils/common';
-import { Clock } from 'three';
-import GUI from 'lil-gui';
 import * as CANNON from 'cannon-es';
 import { Assets } from '@/src/assets';
+import { Clock } from 'three';
+import GUI from 'lil-gui';
 
 export class Game {
-  private readonly fps: 60 | 30;
+  private readonly fps: 30 | 60 | 120;
   private readonly delay: number;
   private readonly clock: Clock;
   private readonly gui: GUI;
@@ -25,8 +28,9 @@ export class Game {
   private readonly camera: Camera;
   private readonly scene: Scene;
   private readonly player: Player;
+  private state: State;
 
-  private constructor() {
+  constructor() {
     this.fps = 60;
     this.delay = 1000 / this.fps;
 
@@ -41,6 +45,7 @@ export class Game {
     this.scene = new Scene(this.gui.addFolder('Main scene'), this.collisionWorld, this.physicsWorld);
     this.player = new Player(this.camera, this.collisionWorld, this.scene, this.physicsWorld, this.gui.addFolder('Player'));
     this.resizer = new WindowUtils(this.renderer, this.camera, this.player.weapon.camera);
+    this.state = new ActiveState(this); // Set the initial state
     this.update = this.update.bind(this);
     this.setup = this.setup.bind(this);
   }
@@ -63,24 +68,30 @@ export class Game {
   }
 
   static start() {
-    return new Game().setup().update();
+    const game = new Game();
+    game.setup();
+    game.update();
+
+    return game;
   }
 
   private update() {
     this.performance.start();
+    this.state.update();
+    this.performance.end();
+    requestAnimationFrame(this.update);
+  }
+
+  nextTick() {
     this.physicsWorld.fixedStep(1 / this.fps);
     const delta = this.clock.getDelta();
     if (this.timestamp.delta >= this.delay) {
-      this.player.update(delta);
       if (this.camera.position.y <= -25) this.player.reset();
+      this.player.update(delta);
 
       for (const child of this.scene.children) {
-        if (child instanceof RigidBody) {
-          child.update();
-        }
+        if (child instanceof RigidBody) child.update();
       }
-
-      this.timestamp.update();
 
       this.renderer.clear(); // Clear the color buffer
       this.renderer.render(this.scene, this.camera);
@@ -92,7 +103,14 @@ export class Game {
 
       this.renderer.render(this.player.weapon.scene, this.player.weapon.camera);
     }
-    this.performance.end();
-    requestAnimationFrame(this.update);
+    this.timestamp.update();
+  }
+
+  pause() {
+    this.state = new PausedState();
+  }
+
+  resume() {
+    this.state = new ActiveState(this);
   }
 }

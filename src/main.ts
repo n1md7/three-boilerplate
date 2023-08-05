@@ -1,5 +1,5 @@
 import '@/src/styles/style.css';
-import { Game } from '@/src/Game';
+import { Game } from '@/src/game/Game';
 import { AssetsLoaded, extractAssets } from '@/src/assets';
 import { assetLoadManager } from '@/src/setup/utils/Loader';
 import { delay } from '@/src/setup/utils/common';
@@ -7,6 +7,7 @@ import { CrosshairController } from '@/src/first-person/controllers/CrosshairCon
 
 const assetLoaderView = document.querySelector('#loader')! as HTMLDivElement;
 const canvas = document.querySelector('#canvas')! as HTMLCanvasElement;
+const resumeButton = document.querySelector('button.resume')! as HTMLButtonElement;
 
 const updateProgress = (progress: number) => {
   assetLoaderView.innerHTML = `Loading... <br/><br/> ${progress.toFixed(2)}%`;
@@ -25,11 +26,23 @@ assetLoadManager.onLoad = async () => {
   button.onclick = () => {
     console.clear();
     console.log('INFO: Starting game...');
-    assetsLoaded.then(Game.start).catch(console.error);
-    assetLoaderView.hidden = true;
-    canvas.hidden = false;
-    CrosshairController.getInstance().show();
-    document.body.requestPointerLock();
+    assetsLoaded
+      .then(() => {
+        const game = Game.start();
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') game.pause();
+        });
+        resumeButton.onclick = () => game.resume();
+        document.addEventListener('pointerlockchange', () => {
+          if (document.pointerLockElement === null) game.pause();
+        });
+
+        assetLoaderView.hidden = true;
+        canvas.hidden = false;
+        CrosshairController.getInstance().show();
+      })
+      .catch(console.error);
   };
   assetLoaderView.innerHTML = '';
   assetLoaderView.appendChild(button);

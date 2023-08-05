@@ -5,6 +5,10 @@ canvas {
   padding: 0;
 }
 
+.hidden {
+  display: none !important;
+}
+
 body {
   background-color: #000000a1 !important;
   overflow: hidden;
@@ -158,4 +162,29 @@ button.start:hover {
 
 button.start:focus {
   outline: none;
+}
+
+div.menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: #000000a1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+div.menu > button {
+  font-size: 2rem;
+  padding: 2rem 5rem;
+  background-color: #000000a1;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 200ms ease-in-out;
 }
