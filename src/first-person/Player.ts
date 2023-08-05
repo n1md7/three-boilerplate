@@ -36,8 +36,7 @@ export class Player {
     private readonly world: Octree,
     private readonly scene: Scene,
     physicsWorld: CANNON.World,
-    gui: GUI,
-    assets: Assets
+    gui: GUI
   ) {
     const start = new Vector3(0, 0.35, 0);
     const end = new Vector3(0, 1, 0);
@@ -45,7 +44,7 @@ export class Player {
     this.playerVelocity = new Vector3();
     this.inputController = new InputController();
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
-    this.weaponController = new WeaponController(gui.addFolder('Weapons'), assets, scene, camera, physicsWorld);
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera, physicsWorld);
     this.mouseController = new MouseController(camera, this.flashlight);
     this.crosshairController = CrosshairController.getInstance();
 

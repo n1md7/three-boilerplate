@@ -2,11 +2,11 @@ import GUI from 'lil-gui';
 import Camera from '@/src/setup/Camera';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { DesertEagle } from '@/src/first-person/weapons/DesertEagle';
-import { Assets } from '@/src/first-person/Player';
 import { PointLight, Scene } from 'three';
 import { M60 } from '@/src/first-person/weapons/M60';
 import { BulletController } from '@/src/first-person/controllers/BulletController';
 import * as CANNON from 'cannon-es';
+import { Assets } from '@/src/assets';
 
 export class WeaponController {
   // Weapon own 2nd scene
@@ -20,10 +20,10 @@ export class WeaponController {
 
   public triggerIsPressed = false;
 
-  constructor(private readonly gui: GUI, assets: Assets, playerScene: Scene, playerCamera: Camera, physicsWorld: CANNON.World) {
+  constructor(private readonly gui: GUI, playerScene: Scene, playerCamera: Camera, physicsWorld: CANNON.World) {
     this.weapons = [
-      new DesertEagle(assets.DesertEagle, gui.addFolder('Desert Eagle')),
-      new M60(assets.M60, gui.addFolder('M60')),
+      new DesertEagle(Assets.Weapons.DesertEagle, gui.addFolder('Desert Eagle')),
+      new M60(Assets.Weapons.M60, gui.addFolder('M60')),
     ];
     this.weaponIndex = 0;
     this.bulletController = new BulletController(playerScene, playerCamera, physicsWorld);
@@ -34,9 +34,8 @@ export class WeaponController {
 
     // No need to add the camera to the scene
     this.scene.add(this.backlight);
-    for (const asset of Object.values(assets)) {
-      this.scene.add(asset.scene);
-    }
+    this.scene.add(Assets.Weapons.DesertEagle.scene);
+    this.scene.add(Assets.Weapons.M60.scene);
     this.hideWeapons();
     this.weapon.show();
   }
