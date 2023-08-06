@@ -2,19 +2,20 @@ import { Game } from '@/src/game/Game';
 import { State } from '@/src/game/types/state.interface';
 import { menu } from '@/src/game/ui/menu/Menu';
 import * as ui from '@/src/game/ui';
+import { AbstractState } from '@/src/game/states/State';
 
-export class ActiveState implements State {
-  constructor(private readonly game: Game) {}
+export class ActiveState extends AbstractState implements State {
+  constructor(game: Game) {
+    super(game);
+  }
 
-  activate() {
+  override activate() {
     menu.hide();
     ui.crosshair.show();
     document.body.requestPointerLock();
   }
 
-  deactivate() {}
-
-  update() {
+  override update() {
     this.game.nextTick();
   }
 }

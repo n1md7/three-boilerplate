@@ -24,7 +24,7 @@ export class DesertEagle extends Weapon {
     });
 
     this.setScale(1.8);
-    this.setFireRate(700);
+    this.setFireRate(500);
     this.setReloadTime(1500);
     this.setMagazineSize(7);
     this.setBullets(7);
