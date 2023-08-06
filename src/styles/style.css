@@ -189,3 +189,7 @@ div.menu > button {
   cursor: pointer;
   transition: all 200ms ease-in-out;
 }
+
+.lil-gui.autoPlace {
+  right: 0 !important;
+}

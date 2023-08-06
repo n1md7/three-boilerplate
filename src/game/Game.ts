@@ -58,10 +58,8 @@ export class Game {
     this.gui.show(Debug.enabled());
     this.scene
       .addLight()
-      .addGround(Assets.Textures.Ground)
+      .addGround()
       .addSky(Assets.Models.Sky)
-      .addAxisHelper()
-      .addGridHelper()
       .addStairs(Assets.Textures.Box)
       .addShootingTarget(Assets.Models.ShootingTarget)
       .addBoxes(Assets.Textures.Box, 64);

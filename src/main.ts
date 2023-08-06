@@ -27,7 +27,6 @@ ui.start.click(() => {
 
       ui.progress.hide();
       ui.canvas.show();
-      ui.crosshair.show();
     })
     .catch(console.error);
 });

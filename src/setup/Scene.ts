@@ -57,15 +57,11 @@ export default class Scene extends ThreeScene {
     return this;
   }
 
-  addGround(texture: Texture) {
-    const ground = new Ground(texture, this.collisionWorld, this.width, this.depth);
-    this.add(ground);
-    const groundBody = new CANNON.Body({
-      type: CANNON.Body.STATIC, // can also be achieved by setting the mass to 0
-      shape: new CANNON.Plane(),
-    });
-    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // make it face up
-    this.physicsWorld.addBody(groundBody);
+  addGround() {
+    const ground = new Ground(this.width);
+    this.add(ground.mesh);
+    this.physicsWorld.addBody(ground.body);
+    this.collisionWorld.fromGraphNode(ground.mesh);
 
     return this;
   }

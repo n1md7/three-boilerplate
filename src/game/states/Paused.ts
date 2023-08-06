@@ -5,8 +5,8 @@ import * as ui from '@/src/game/ui';
 export class PausedState implements State {
   constructor() {
     menu.show();
-    document.exitPointerLock();
     ui.crosshair.hide();
+    document.exitPointerLock();
   }
 
   update() {
