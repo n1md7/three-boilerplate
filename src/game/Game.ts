@@ -4,7 +4,7 @@ import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Renderer, Camera, Scene } from '@/src/setup';
 import { RigidBody } from '@/src/abstract/RigidBody';
-import { State } from '@/src/game/types/state.interface';
+import { State, States } from '@/src/game/types/state.interface';
 import { ActiveState } from '@/src/game/states/Active';
 import { PausedState } from '@/src/game/states/Paused';
 import { Player } from '@/src/first-person/Player';
@@ -16,7 +16,7 @@ import GUI from 'lil-gui';
 import { IdleState } from '@/src/game/states/Idle';
 
 export class Game {
-  private readonly fps: 30 | 60 | 120;
+  private readonly fps: 30 | 60 | 90 | 120;
   private readonly delay: number;
   private readonly clock: Clock;
   private readonly gui: GUI;
@@ -29,13 +29,19 @@ export class Game {
   private readonly camera: Camera;
   private readonly scene: Scene;
   private readonly player: Player;
+  private readonly states: States;
   private state: State;
 
   constructor() {
     this.fps = 60;
     this.delay = 1000 / this.fps;
 
-    this.state = new IdleState();
+    this.states = {
+      Idle: new IdleState(this),
+      Active: new ActiveState(this),
+      Paused: new PausedState(this),
+    };
+    this.state = this.states.Idle;
     this.gui = new GUI();
     this.clock = new Clock();
     this.timestamp = new Timestamp();
@@ -63,9 +69,15 @@ export class Game {
       .addStairs(Assets.Textures.Box)
       .addShootingTarget(Assets.Models.ShootingTarget)
       .addBoxes(Assets.Textures.Box, 64);
-    this.state = new ActiveState(this); // Set the initial state
+    this.setState('Active');
 
     return this;
+  }
+
+  private setState(state: keyof States) {
+    this.state.deactivate();
+    this.state = this.states[state];
+    this.state.activate();
   }
 
   start() {
@@ -104,10 +116,10 @@ export class Game {
   }
 
   pause() {
-    this.state = new PausedState();
+    this.setState('Paused');
   }
 
   resume() {
-    this.state = new ActiveState(this);
+    this.setState('Active');
   }
 }

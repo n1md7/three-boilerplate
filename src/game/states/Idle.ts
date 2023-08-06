@@ -1,7 +1,12 @@
 import { State } from '@/src/game/types/state.interface';
+import { Game } from '@/src/game/Game';
 
 export class IdleState implements State {
-  update() {
-    // Do nothing, for now
-  }
+  constructor(_game: Game) {}
+
+  activate() {}
+
+  deactivate() {}
+
+  update() {}
 }
