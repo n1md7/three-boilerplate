@@ -3,16 +3,15 @@ import * as CANNON from 'cannon-es';
 import { LinkedList } from '@/src/data-structures/LinkedList';
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
-import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 import { RigidBody } from '@/src/abstract/RigidBody';
 import { Box } from '@/src/setup/scene/components/Box';
+import { crosshair } from '@/src/game/ui';
 
 export class BulletController {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.Camera;
 
   private readonly bullets: LinkedList<Bullet>;
-  private readonly crosshair: CrosshairController;
   private readonly physicsWorld: CANNON.World;
   private bulletHoles: { sphere: THREE.Mesh; body: CANNON.Body; timestamp: number }[] = [];
 
@@ -21,7 +20,6 @@ export class BulletController {
     this.camera = camera;
     this.physicsWorld = physicsWorld;
     this.bullets = new LinkedList();
-    this.crosshair = CrosshairController.getInstance();
   }
 
   shoot(weapon: Weapon) {
@@ -32,7 +30,7 @@ export class BulletController {
     this.camera.getWorldDirection(direction);
     // Add a little bit of direction accuracy change based on the crosshair accuracy value
     // 5% is always inaccurate even though the crosshair is set to 100%
-    const accuracy = (this.crosshair.getAccuracy() - 100 || 5) / 1000;
+    const accuracy = (crosshair.getAccuracy() - 100 || 5) / 1000;
     direction.x += (Math.random() - 0.5) * accuracy;
     direction.y += (Math.random() - 0.5) * accuracy;
     direction.z += (Math.random() - 0.5) * accuracy;

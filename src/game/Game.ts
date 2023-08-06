@@ -13,6 +13,7 @@ import * as CANNON from 'cannon-es';
 import { Assets } from '@/src/assets';
 import { Clock } from 'three';
 import GUI from 'lil-gui';
+import { IdleState } from '@/src/game/states/Idle';
 
 export class Game {
   private readonly fps: 30 | 60 | 120;
@@ -34,6 +35,7 @@ export class Game {
     this.fps = 60;
     this.delay = 1000 / this.fps;
 
+    this.state = new IdleState();
     this.gui = new GUI();
     this.clock = new Clock();
     this.timestamp = new Timestamp();
@@ -45,12 +47,12 @@ export class Game {
     this.scene = new Scene(this.gui.addFolder('Main scene'), this.collisionWorld, this.physicsWorld);
     this.player = new Player(this.camera, this.collisionWorld, this.scene, this.physicsWorld, this.gui.addFolder('Player'));
     this.resizer = new WindowUtils(this.renderer, this.camera, this.player.weapon.camera);
-    this.state = new ActiveState(this); // Set the initial state
     this.update = this.update.bind(this);
     this.setup = this.setup.bind(this);
   }
 
   setup() {
+    this.player.setup();
     this.performance.show();
     this.resizer.subscribe();
     this.gui.show(Debug.enabled());
@@ -63,16 +65,13 @@ export class Game {
       .addStairs(Assets.Textures.Box)
       .addShootingTarget(Assets.Models.ShootingTarget)
       .addBoxes(Assets.Textures.Box, 64);
+    this.state = new ActiveState(this); // Set the initial state
 
     return this;
   }
 
-  static start() {
-    const game = new Game();
-    game.setup();
-    game.update();
-
-    return game;
+  start() {
+    return this.update();
   }
 
   private update() {

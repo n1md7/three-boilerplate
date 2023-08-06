@@ -21,16 +21,18 @@ export class WeaponController {
   public triggerIsPressed = false;
 
   constructor(private readonly gui: GUI, playerScene: Scene, playerCamera: Camera, physicsWorld: CANNON.World) {
-    this.weapons = [
-      new DesertEagle(Assets.Weapons.DesertEagle, gui.addFolder('Desert Eagle')),
-      new M60(Assets.Weapons.M60, gui.addFolder('M60')),
-    ];
+    this.weapons = [];
     this.weaponIndex = 0;
     this.bulletController = new BulletController(playerScene, playerCamera, physicsWorld);
 
     this.scene = new Scene();
     this.camera = new Camera(55, 65);
     this.backlight = this.createLight();
+  }
+
+  setup() {
+    this.weapons.push(new DesertEagle(Assets.Weapons.DesertEagle, this.gui.addFolder('Desert Eagle')));
+    this.weapons.push(new M60(Assets.Weapons.M60, this.gui.addFolder('M60')));
 
     // No need to add the camera to the scene
     this.scene.add(this.backlight);

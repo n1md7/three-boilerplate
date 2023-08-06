@@ -5,7 +5,8 @@ canvas {
   padding: 0;
 }
 
-.hidden {
+.hidden,
+[hidden] {
   display: none !important;
 }
 
@@ -138,7 +139,7 @@ div.crosshair .line-vertical {
   height: 48px;
 }
 
-button.start,
+button#start,
 div#loader {
   text-align: center;
   position: absolute;
@@ -155,12 +156,12 @@ div#loader {
   transition: all 200ms ease-in-out;
 }
 
-button.start:hover {
+button#start:hover {
   background-color: #fff;
   color: #000000a1;
 }
 
-button.start:focus {
+button#start:focus {
   outline: none;
 }
 

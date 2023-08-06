@@ -4,12 +4,12 @@ import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
 import { InputController } from '@/src/first-person/controllers/InputController';
 import { MouseController } from '@/src/first-person/controllers/MouseController';
-import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
 import { WeaponController } from '@/src/first-person/controllers/WeaponController';
 import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { Scene, Camera } from '@/src/setup';
 import * as CANNON from 'cannon-es';
 import GUI from 'lil-gui';
+import { crosshair } from '@/src/game/ui';
 
 export type WeaponName = 'DesertEagle' | 'M60'; // | 'M16' | 'MP5' | 'P90' | 'AWP' | 'M249' | 'Knife'
 export type WeaponSound = 'shoot' | 'reload' | 'empty' | 'equip' | 'unequip';
@@ -25,7 +25,6 @@ export class Player {
   private readonly inputController: InputController;
   private readonly mouseController: MouseController;
   private readonly flashlight: FlashLight;
-  private readonly crosshairController: CrosshairController;
   private readonly weaponController: WeaponController;
 
   private playerIsGrounded = false; // On the floor (touching)
@@ -46,13 +45,16 @@ export class Player {
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
     this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera, physicsWorld);
     this.mouseController = new MouseController(camera, this.flashlight);
-    this.crosshairController = CrosshairController.getInstance();
 
     this.scene.add(this.flashlight, this.flashlight.target);
 
     this.subscribe();
     // Set Player Y to be 30 units above the ground
     this.playerBody.translate(new Vector3(0, 5, 0));
+  }
+
+  setup() {
+    this.weaponController.setup();
   }
 
   get weapon() {
@@ -193,6 +195,6 @@ export class Player {
     if (this.weapon.triggerIsPressed) this.accuracy -= 50;
     if (move.anyDirection) this.accuracy -= 25 + (sprint ? 25 : 0);
     if (jump) this.accuracy -= 50;
-    this.crosshairController.setAccuracy(this.accuracy);
+    crosshair.setAccuracy(this.accuracy);
   }
 }

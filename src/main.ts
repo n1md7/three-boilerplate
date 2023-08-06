@@ -3,55 +3,56 @@ import { Game } from '@/src/game/Game';
 import { AssetsLoaded, extractAssets } from '@/src/assets';
 import { assetLoadManager } from '@/src/setup/utils/Loader';
 import { delay } from '@/src/setup/utils/common';
-import { CrosshairController } from '@/src/first-person/controllers/CrosshairController';
+import * as ui from '@/src/game/ui';
 
-const assetLoaderView = document.querySelector('#loader')! as HTMLDivElement;
-const canvas = document.querySelector('#canvas')! as HTMLCanvasElement;
-const resumeButton = document.querySelector('button.resume')! as HTMLButtonElement;
-
-const updateProgress = (progress: number) => {
-  assetLoaderView.innerHTML = `Loading... <br/><br/> ${progress.toFixed(2)}%`;
-};
+ui.progress.show();
 
 const assetsLoaded = AssetsLoaded.then(extractAssets);
 assetsLoaded.catch(console.error);
+const game = new Game();
+ui.menu.resume.click(() => game.resume());
+ui.start.click(() => {
+  assetsLoaded
+    .then(async () => {
+      console.clear();
+
+      ui.start.hide();
+      ui.progress.show();
+      ui.progress.displayText('Loading...');
+
+      await delay(100);
+
+      game.setup();
+      game.start();
+
+      ui.progress.hide();
+      ui.canvas.show();
+      ui.crosshair.show();
+    })
+    .catch(console.error);
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') game.pause();
+});
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === null) game.pause();
+});
+
 assetLoadManager.onLoad = async () => {
   console.log('INFO: Asset loading complete');
-  updateProgress(100);
+
+  ui.progress.update(100);
+
   await delay(500);
 
-  const button = document.createElement('button');
-  button.classList.add('start');
-  button.innerHTML = 'Start';
-  button.onclick = () => {
-    console.clear();
-    console.log('INFO: Starting game...');
-    assetsLoaded
-      .then(() => {
-        const game = Game.start();
-
-        document.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') game.pause();
-        });
-        resumeButton.onclick = () => game.resume();
-        document.addEventListener('pointerlockchange', () => {
-          if (document.pointerLockElement === null) game.pause();
-        });
-
-        assetLoaderView.hidden = true;
-        canvas.hidden = false;
-        CrosshairController.getInstance().show();
-      })
-      .catch(console.error);
-  };
-  assetLoaderView.innerHTML = '';
-  assetLoaderView.appendChild(button);
+  ui.progress.hide();
+  ui.start.show();
 };
 assetLoadManager.onProgress = (item, loaded, total) => {
   console.log(`INFO: Loading asset "${item}"`);
-  updateProgress((loaded / total) * 100);
+  ui.progress.update((loaded / total) * 100);
 };
 assetLoadManager.onError = (error) => {
-  console.log(`Error: ${error}`);
-  assetLoaderView.innerHTML = `Error: ${error}`;
+  console.error(`Error: ${error}`);
+  ui.progress.displayText(`Error: ${error}`);
 };
