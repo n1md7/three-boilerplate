@@ -2,28 +2,12 @@ import { Character } from '@/src/first-person/Character';
 import { Camera } from '@/src/setup';
 import * as THREE from 'three';
 
-export interface iCommand {
-  execute(delta: number): void;
-  stop(): void;
-  isActive(): boolean;
-}
-
-export abstract class Command implements iCommand {
-  private active = false;
-
+export abstract class Command {
   protected constructor(protected readonly character: Character, protected readonly camera: Camera) {}
 
-  execute(_delta: number) {
-    this.active = true;
-  }
+  abstract execute(delta: number): void;
 
-  stop() {
-    this.active = false;
-  }
-
-  isActive() {
-    return this.active;
-  }
+  stop() {}
 
   /**
    * Get the Z axis vector of the camera.

@@ -1,3 +1,5 @@
+import { InputHandler } from '@/src/first-person/character/InputHandler';
+
 export class InputController extends EventTarget {
   private moveForward = false;
   private moveBackward = false;
@@ -6,6 +8,10 @@ export class InputController extends EventTarget {
 
   private isShiftPressed = false;
   private isSpacePressed = false;
+
+  constructor(private readonly inputHandler: InputHandler) {
+    super();
+  }
 
   subscribe() {
     document.addEventListener('keydown', this.onKeyDown.bind(this));
@@ -32,6 +38,8 @@ export class InputController extends EventTarget {
   }
 
   private onKeyDown(event: KeyboardEvent) {
+    console.log(event.code);
+    this.inputHandler.handleInput(event.code);
     switch (event.code) {
       case 'KeyW':
         this.moveForward = true;
@@ -78,6 +86,7 @@ export class InputController extends EventTarget {
   }
 
   private onKeyUp(event: KeyboardEvent) {
+    this.inputHandler.releaseInput(event.code);
     switch (event.code) {
       case 'KeyW':
         this.moveForward = false;

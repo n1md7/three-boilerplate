@@ -6,11 +6,10 @@ export class GoForward extends Command {
   constructor(character: Character, camera: Camera) {
     super(character, camera);
   }
-  override execute(delta: number) {
-    super.execute(delta);
-
+  execute(delta: number) {
     const normalized = super.getZAxisVector();
-    const velocity = this.character.getState().getSpeed();
+    const velocity = this.character.states.currentState.getSpeed();
     this.character.velocity.add(normalized.multiplyScalar(velocity * delta));
+    this.character.startMovingWhenIdle();
   }
 }

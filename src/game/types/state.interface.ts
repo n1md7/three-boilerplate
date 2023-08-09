@@ -1,7 +1,7 @@
-export interface State {
+export interface GameState {
   activate(): void;
   deactivate(): void;
   update(): void;
 }
 
-export type States = Record<'Idle' | 'Active' | 'Paused', State>;
+export type GameStates = Record<'Idle' | 'Active' | 'Paused', GameState>;
