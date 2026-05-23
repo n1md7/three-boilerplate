@@ -388,118 +388,90 @@ kbd {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Crosshair (kept — already looks good, just retuned glow)
+   Crosshair — four lines + centre pip, spread driven by a single
+   CSS variable (--spread) per accuracy bucket. All selectors are
+   scoped under .crosshair so they don't leak into the page.
    ───────────────────────────────────────────────────────────── */
 .crosshair {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  font-size: 40px;
-  transform: translate(-50%, -50%);
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: 200px;
   height: 200px;
   pointer-events: none;
+  z-index: 5;
+
+  /* The only animated quantity. Lines transform outward by this much. */
+  --crosshair-spread: 4px;
+  --crosshair-length: 14px;
+  --crosshair-color: rgba(19, 255, 195, 0.85);
+  --crosshair-glow: rgba(48, 234, 27, 0.9);
+  --crosshair-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-div.crosshair .line-horizontal,
-div.crosshair .line-vertical {
-  background-color: rgba(19, 255, 195, 0.55);
-}
-
-.line-horizontal,
-.line-vertical {
+.crosshair__line {
   position: absolute;
-  box-shadow:
-    0 0 6px rgba(48, 234, 27, 0.9),
-    0 0 3px rgba(255, 255, 255, 0.7);
-  transition: all 200ms var(--ease);
-}
-
-.line-horizontal {
-  width: 86px;
-  height: 1px;
   top: 50%;
-  transform: translate(0, -50%);
-}
-
-.line-vertical {
-  width: 1px;
-  height: 86px;
   left: 50%;
-  transform: translate(-50%, 0);
+  background-color: var(--crosshair-color);
+  box-shadow:
+    0 0 6px var(--crosshair-glow),
+    0 0 3px rgba(255, 255, 255, 0.7);
+  transition: transform 180ms var(--crosshair-ease);
+  will-change: transform;
 }
 
-.top {
-  top: 0;
-}
-.bottom {
-  bottom: 0;
-}
-.left {
-  left: 0;
-}
-.right {
-  right: 0;
+.crosshair__line--h {
+  width: var(--crosshair-length);
+  height: 1px;
 }
 
-.crosshair.accuracy-25 .left {
-  left: -75%;
-}
-.crosshair.accuracy-25 .right {
-  right: -75%;
-}
-.crosshair.accuracy-25 .top {
-  top: -75%;
-}
-.crosshair.accuracy-25 .bottom {
-  bottom: -75%;
+.crosshair__line--v {
+  width: 1px;
+  height: var(--crosshair-length);
 }
 
-.crosshair.accuracy-50 .left {
-  left: -50%;
+/* Each line transforms from screen-centre outward by --crosshair-spread.
+   The translate places the line's inner edge exactly --crosshair-spread
+   from the centre. */
+.crosshair__line--left {
+  transform: translate(calc(-100% - var(--crosshair-spread)), -50%);
 }
-.crosshair.accuracy-50 .right {
-  right: -50%;
+.crosshair__line--right {
+  transform: translate(var(--crosshair-spread), -50%);
 }
-.crosshair.accuracy-50 .top {
-  top: -50%;
+.crosshair__line--top {
+  transform: translate(-50%, calc(-100% - var(--crosshair-spread)));
 }
-.crosshair.accuracy-50 .bottom {
-  bottom: -50%;
-}
-
-.crosshair.accuracy-75 .left {
-  left: -5%;
-  width: 64px;
-}
-.crosshair.accuracy-75 .right {
-  right: -5%;
-  width: 64px;
-}
-.crosshair.accuracy-75 .top {
-  top: -5%;
-  height: 64px;
-}
-.crosshair.accuracy-75 .bottom {
-  bottom: -5%;
-  height: 64px;
+.crosshair__line--bottom {
+  transform: translate(-50%, var(--crosshair-spread));
 }
 
-.crosshair.accuracy-100 .left {
-  left: 20%;
-  width: 48px;
+.crosshair__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--crosshair-color);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 4px var(--crosshair-glow);
 }
-.crosshair.accuracy-100 .right {
-  right: 20%;
-  width: 48px;
+
+/* One variable per accuracy bucket — every line transitions to the new
+   spread in lock-step. Replaces 16 nearly-identical rules. */
+.crosshair.accuracy-100 {
+  --crosshair-spread: 4px;
 }
-.crosshair.accuracy-100 .top {
-  top: 20%;
-  height: 48px;
+.crosshair.accuracy-75 {
+  --crosshair-spread: 14px;
 }
-.crosshair.accuracy-100 .bottom {
-  bottom: 20%;
-  height: 48px;
+.crosshair.accuracy-50 {
+  --crosshair-spread: 28px;
+}
+.crosshair.accuracy-25 {
+  --crosshair-spread: 50px;
 }
 
 /* ─────────────────────────────────────────────────────────────
