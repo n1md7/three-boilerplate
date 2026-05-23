@@ -2,30 +2,53 @@ name: Publish to GitHub Pages
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: [master]
+  workflow_dispatch:
+
+# Modern Pages deployment requires these two scoped permissions on the workflow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Avoid stacking redundant deploys when commits land in quick succession.
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 18.15.0
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.15.0
+          node-version-file: '.nvmrc'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      - name: Build static files
-        run: npm run build --if-present
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

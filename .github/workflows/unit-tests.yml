@@ -1,4 +1,4 @@
-name: Run Unit Tests
+name: Unit Tests
 
 on:
   push:
@@ -11,13 +11,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 18.15.0
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.15.0
+          node-version-file: '.nvmrc' # single source of truth — keeps CI in lock-step with local dev
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
       - name: Run unit tests
-        run: npm run test
+        run: npm test

@@ -1,27 +1,58 @@
-name: Build/release
+name: Build OS Binaries
 
 on:
   release:
     types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to attach binaries to the GitHub Release
 
 jobs:
-  release:
+  build:
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 18.15.0
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.15.0
+          node-version-file: '.nvmrc'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build static files
-        run: npm run build --if-present
-      - name: Build/release Electron app ${{ matrix.os }}
+        run: npm run build
+
+      - name: Build Electron app
         run: npm run make
+
+      # Electron-Forge writes its output (squirrel/deb/rpm/zip) under ./out.
+      # Upload it as an artifact (so workflow_dispatch runs are inspectable)
+      # and, when this workflow was triggered by a release, attach the same
+      # files to the GitHub Release.
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-binaries
+          path: |
+            out/make/**/*
+            out/**/*.zip
+          if-no-files-found: warn
+
+      - name: Attach binaries to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/**/*
+            out/**/*.zip
