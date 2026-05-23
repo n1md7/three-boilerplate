@@ -1,6 +1,5 @@
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
-import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Renderer, Camera, Scene } from '@/src/setup';
 import { RigidBody } from '@/src/abstract/RigidBody';
 import { ActiveState } from '@/src/game/states/Active';
@@ -23,12 +22,12 @@ import { GameState, GameStates } from '@/src/game/types/state.interface';
  * player-vs-dynamic-box collision is automatic and always up to date.
  */
 export class Game {
-  private readonly fps: 30 | 60 | 90 | 120;
-  private readonly delay: number;
+  /** Physics step rate (Hz). Independent of monitor refresh; CANNON handles
+   *  catch-up internally via fixedStep(). Render runs uncapped at native rAF. */
+  private readonly physicsHz = 60;
   private readonly clock: Timer;
   private readonly gui: GUI;
   private readonly resizer: WindowUtils;
-  private readonly timestamp: Timestamp;
   private readonly performance: Performance;
   private readonly physicsWorld: CANNON.World;
   private readonly renderer: Renderer;
@@ -39,9 +38,6 @@ export class Game {
   private state: GameState;
 
   constructor() {
-    this.fps = 60;
-    this.delay = 1000 / this.fps;
-
     this.states = {
       Idle: new IdleState(this),
       Active: new ActiveState(this),
@@ -50,7 +46,6 @@ export class Game {
     this.state = this.states.Idle;
     this.gui = new GUI();
     this.clock = new Timer();
-    this.timestamp = new Timestamp();
     this.performance = new Performance();
     this.physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
     this.renderer = new Renderer();
@@ -94,14 +89,14 @@ export class Game {
   }
 
   nextTick() {
-    this.physicsWorld.fixedStep(1 / this.fps);
+    // Physics has its own internal accumulator and steps at a fixed rate
+    // regardless of how often we call this (cannon-es fixedStep). So calling
+    // it every rAF is safe — at 120Hz it'll step ~once per two rAFs, at 60Hz
+    // ~once per rAF. Decouples sim rate from render rate.
+    this.physicsWorld.fixedStep(1 / this.physicsHz);
+
     this.clock.update();
     const delta = this.clock.getDelta();
-
-    if (this.timestamp.delta < this.delay) {
-      this.timestamp.update();
-      return;
-    }
 
     if (this.camera.position.y <= -25) this.player.reset();
 
@@ -122,8 +117,6 @@ export class Game {
     this.camera.getWorldPosition(this.player.weapon.camera.position);
     this.camera.getWorldQuaternion(this.player.weapon.camera.quaternion);
     this.renderer.render(this.player.weapon.scene, this.player.weapon.camera);
-
-    this.timestamp.update();
   }
 
   pause() {
