@@ -4,7 +4,9 @@ import { Camera } from '@/src/setup';
 
 export class FlashLight extends SpotLight {
   constructor(private readonly gui: GUI) {
-    super('#FFFFFF', 2, 100, Math.PI / 18, 0.15, 1);
+    // Physical light units (three r155+) — intensity in candelas. The old
+    // value of 2 corresponded to legacy units; modern units need ~80–120.
+    super('#FFFFFF', 120, 100, Math.PI / 18, 0.15, 1);
 
     this.castShadow = true;
     this.position.set(2.5, 7.5, 15);
@@ -41,7 +43,7 @@ export class FlashLight extends SpotLight {
   }
 
   private addGUI() {
-    this.gui.add(this, 'intensity', 0, 20, 0.01);
+    this.gui.add(this, 'intensity', 0, 400, 0.5);
     this.gui.addColor(this, 'color');
     this.gui.add(this, 'distance', 0, 100, 0.01);
     this.gui.add(this, 'angle', 0, Math.PI / 2, 0.01);

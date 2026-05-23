@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,12 +7,40 @@
     <title>THREE.JS FPS Template</title>
   </head>
   <body>
-    <div id="loader">Initializing...</div>
-    <button id="start" hidden>Start</button>
-    <canvas id="canvas" hidden></canvas>
-    <div class="menu" hidden>
-      <button class="resume">Resume</button>
+    <div id="loader" class="overlay">
+      <div class="card">
+        <h1 class="card-title">FPS&nbsp;Template</h1>
+        <div class="card-status">Initializing…</div>
+        <div class="progress-bar">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
     </div>
+
+    <button id="start" hidden>
+      <span class="btn-label">Start</span>
+      <span class="btn-hint">click to play</span>
+    </button>
+
+    <canvas id="canvas" hidden></canvas>
+
+    <div class="menu overlay" hidden>
+      <div class="card">
+        <h1 class="card-title">Paused</h1>
+        <button class="resume btn-primary">Resume</button>
+        <ul class="controls">
+          <li><kbd>W A S D</kbd><span>Move</span></li>
+          <li><kbd>Shift</kbd><span>Sprint</span></li>
+          <li><kbd>Space</kbd><span>Jump</span></li>
+          <li><kbd>Mouse</kbd><span>Look / Shoot</span></li>
+          <li><kbd>R</kbd><span>Reload</span></li>
+          <li><kbd>F</kbd><span>Flashlight</span></li>
+          <li><kbd>1&nbsp;–&nbsp;9</kbd><span>Switch weapon</span></li>
+          <li><kbd>Esc</kbd><span>Pause</span></li>
+        </ul>
+      </div>
+    </div>
+
     <script type="module" src="src/main.ts"></script>
   </body>
 </html>

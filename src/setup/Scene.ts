@@ -1,7 +1,7 @@
 import { GUI } from 'lil-gui';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { AxesHelper, GridHelper, PointLight } from 'three';
+import { AmbientLight, AxesHelper, GridHelper, HemisphereLight, PointLight } from 'three';
 import { Texture, RepeatWrapping } from 'three';
 import { Scene as ThreeScene, Color, Fog, PointLightHelper } from 'three';
 import { MeshStandardMaterial, Mesh, BoxGeometry } from 'three';
@@ -42,16 +42,26 @@ export default class Scene extends ThreeScene {
   }
 
   addLight() {
-    const light = new PointLight('#FFFFFF', 1, 100);
-    light.castShadow = true;
-    light.position.set(2.5, 7.5, 15);
-    this.add(light, new PointLightHelper(light));
+    // three.js r155+ uses physical light units, so old intensity values that
+    // used to read bright now read black. We compose three contributions:
+    //   • A HemisphereLight gives a soft sky→ground gradient as global fill.
+    //   • An AmbientLight stops shadows from going pitch-black.
+    //   • A PointLight at much higher intensity is the main scene casting light.
+    const hemi = new HemisphereLight('#a8c4ff', '#3a2a1a', 1.2);
+    const ambient = new AmbientLight('#ffffff', 0.4);
+    const point = new PointLight('#fff5d6', 200, 100, 1.5);
+    point.castShadow = true;
+    point.position.set(2.5, 7.5, 15);
+
+    this.add(hemi, ambient, point, new PointLightHelper(point));
 
     const gui = this.gui.addFolder('Light');
-    gui.add(light, 'intensity', 0, 20, 0.01);
-    gui.addColor(light, 'color');
-    gui.add(light, 'distance', 0, 100, 0.01);
-    gui.add(light, 'decay', 0, 10, 0.01);
+    gui.add(point, 'intensity', 0, 500, 0.5).name('point intensity');
+    gui.addColor(point, 'color').name('point color');
+    gui.add(point, 'distance', 0, 200, 0.5).name('point distance');
+    gui.add(point, 'decay', 0, 4, 0.05).name('point decay');
+    gui.add(hemi, 'intensity', 0, 5, 0.01).name('hemi intensity');
+    gui.add(ambient, 'intensity', 0, 2, 0.01).name('ambient intensity');
     gui.close();
 
     return this;

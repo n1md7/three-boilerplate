@@ -101,6 +101,9 @@ export class Game {
 
   nextTick() {
     this.physicsWorld.fixedStep(1 / this.fps);
+    // three.js Timer doesn't self-advance — it requires an explicit update()
+    // before getDelta() returns anything non-zero. (Different from Clock.)
+    this.clock.update();
     const delta = this.clock.getDelta();
     if (this.timestamp.delta < this.delay) {
       this.timestamp.update();
