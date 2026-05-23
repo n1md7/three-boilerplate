@@ -5,7 +5,6 @@ import { DesertEagle } from '@/src/first-person/weapons/DesertEagle';
 import { AmbientLight, HemisphereLight, PointLight, Scene, Vector3 } from 'three';
 import { M60 } from '@/src/first-person/weapons/M60';
 import { BulletController } from '@/src/first-person/controllers/BulletController';
-import * as CANNON from 'cannon-es';
 import { Assets } from '@/src/assets';
 
 export class WeaponController {
@@ -36,12 +35,11 @@ export class WeaponController {
     private readonly gui: GUI,
     playerScene: Scene,
     playerCamera: Camera,
-    physicsWorld: CANNON.World,
   ) {
     this.weapons = [];
     this.weaponIndex = 0;
     this.playerCamera = playerCamera;
-    this.bulletController = new BulletController(playerScene, playerCamera, physicsWorld);
+    this.bulletController = new BulletController(playerScene, playerCamera);
 
     this.scene = new Scene();
     this.camera = new Camera(55, 65);

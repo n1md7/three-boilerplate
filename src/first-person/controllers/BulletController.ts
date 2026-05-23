@@ -4,42 +4,50 @@ import { LinkedList } from '@/src/data-structures/LinkedList';
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
 import { RigidBody } from '@/src/abstract/RigidBody';
-import { Box } from '@/src/setup/scene/components/Box';
 import { crosshair } from '@/src/game/ui';
 
+/** Lifetime of a bullet hole in milliseconds. `Infinity` to keep them forever. */
+const BULLET_HOLE_LIFETIME_MS = 12_000;
+
 export class BulletController {
-  private readonly scene: THREE.Scene;
-  private readonly camera: THREE.Camera;
-
   private readonly bullets: LinkedList<Bullet>;
-  private readonly physicsWorld: CANNON.World;
-  private bulletHoles: { sphere: THREE.Mesh; body: CANNON.Body; timestamp: number }[] = [];
 
-  constructor(scene: THREE.Scene, camera: THREE.Camera, physicsWorld: CANNON.World) {
-    this.scene = scene;
-    this.camera = camera;
-    this.physicsWorld = physicsWorld;
+  /**
+   * Bullet holes are parented to whatever Three.js object got hit, so the scene
+   * graph handles "follow the target as it moves" for free. We only need to
+   * remember the marker mesh + when it was created so we can expire it later.
+   */
+  private bulletHoles: { sphere: THREE.Mesh; timestamp: number }[] = [];
+
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly camera: THREE.Camera,
+  ) {
     this.bullets = new LinkedList();
   }
 
   shoot(weapon: Weapon) {
     const direction = new THREE.Vector3();
-    // Get the direction the camera is facing
-    // But add a bit of distance to the direction
-    // to make it look like the bullet is coming out of the barrel
     this.camera.getWorldDirection(direction);
-    // Add a little bit of direction accuracy change based on the crosshair accuracy value
-    // 5% is always inaccurate even though the crosshair is set to 100%
+
+    // Add a tiny bit of inaccuracy based on the crosshair's current spread.
+    // 5% is always present so shots aren't pixel-perfect even at full accuracy.
     const accuracy = (crosshair.getAccuracy() - 100 || 5) / 1000;
     direction.x += (Math.random() - 0.5) * accuracy;
     direction.y += (Math.random() - 0.5) * accuracy;
     direction.z += (Math.random() - 0.5) * accuracy;
 
     const bullet = Bullet.from(weapon.bullet);
-    // Set the bullet's position to the camera's position minus tiny bit of distance
-    bullet.shotFrom.copy(this.camera.position.sub(direction.multiplyScalar(0.1)));
+    // shotFrom = camera.position − direction × 0.1, computed *without* mutating
+    // either the camera position or the direction vector. Using `.sub()` here
+    // would silently move the player's camera each shot, producing a one-frame
+    // forward/back camera jitter on every trigger pull (the reason for the
+    // previous "shake" symptom).
+    bullet.shotFrom.copy(this.camera.position).addScaledVector(direction, -0.1);
     bullet.position.copy(this.camera.position);
-    bullet.velocity.add(direction.multiplyScalar(weapon.bullet.speed));
+    // addScaledVector reads `direction` without modifying it, so this still
+    // sees the un-shrunk direction and the bullet flies at its configured speed.
+    bullet.velocity.addScaledVector(direction, weapon.bullet.speed);
 
     this.scene.add(bullet);
     this.bullets.add(bullet);
@@ -48,40 +56,32 @@ export class BulletController {
   }
 
   update(weapon: Weapon) {
+    // Expire old holes. No need to update positions — they're parented to the
+    // hit object so the scene-graph transform handles tracking automatically.
     this.bulletHoles = this.bulletHoles.filter(({ timestamp, sphere }) => {
-      const condition = timestamp + 12000 > Date.now(); // 12 seconds
-      if (!condition) sphere.removeFromParent();
-      return condition;
+      const keep = timestamp + BULLET_HOLE_LIFETIME_MS > Date.now();
+      if (!keep) sphere.removeFromParent();
+      return keep;
     });
-    for (const { body, sphere } of this.bulletHoles) {
-      // Position the sphere at the collision point
-      sphere.position.setX(body.position.x);
-      sphere.position.setY(body.position.y);
-      sphere.position.setZ(body.position.z);
-    }
 
-    // Adjust the desired distance threshold
     BulletLoop: for (const bullet of this.bullets) {
-      // Animates the bullet by moving it the original direction
       bullet.update();
 
       if (bullet.isEffective(weapon)) {
         for (const intersection of this.detectIntersections(bullet)) {
-          // Whitelist of objects that can NOT be hit
-          const isAxisHelper = intersection.object instanceof THREE.AxesHelper;
-          const isGridHelper = intersection.object instanceof THREE.GridHelper;
-          if (isAxisHelper || isGridHelper) continue;
+          // Skip helper objects — only world geometry should register hits.
+          if (intersection.object instanceof THREE.AxesHelper) continue;
+          if (intersection.object instanceof THREE.GridHelper) continue;
 
-          // Objects that can be hit
-          this.highlightIntersectionPoint(intersection.point, bullet);
+          this.attachBulletHole(intersection, bullet);
           this.applyForce(intersection, bullet);
           this.removeBullet(bullet);
 
-          continue BulletLoop; // One bullet can only hit one object
+          continue BulletLoop; // One bullet hits at most one object.
         }
       }
 
-      // When a bullet not effective or when it doesn't hit anything ( anything that is Mesh), remove it
+      // Out of range or off-screen — drop it.
       this.removeBullet(bullet);
     }
   }
@@ -93,49 +93,52 @@ export class BulletController {
 
   private detectIntersections(bullet: Bullet) {
     const raycaster = new THREE.Raycaster();
-    raycaster.set(bullet.position, bullet.velocity.normalize());
-
+    // Raycaster needs a unit-length direction. `.normalize()` is in-place, so
+    // clone first — otherwise the bullet's velocity gets clobbered to length 1
+    // after the first raycast and the weapon's `speed` setting stops mattering.
+    raycaster.set(bullet.position, bullet.velocity.clone().normalize());
     return raycaster.intersectObject(this.scene, true);
   }
 
-  private highlightIntersectionPoint(position: THREE.Vector3, bullet: Bullet) {
-    // Create a new material with a brighter color
-    const highlightMaterial = new THREE.MeshBasicMaterial({ color: bullet.color });
-
-    // Create a sphere to indicate the position of the collision.
-    // `bullet.size` is the *diameter* (matches the field's doc comment and how
-    // Bullet itself constructs its geometry as SphereGeometry(size / 2)), so the
-    // marker's radius must also be size / 2 to match the bullet visually.
+  /**
+   * Parents a small sphere to whatever was hit. Because Three.js applies parent
+   * transforms during rendering, the marker automatically tracks moving targets
+   * (e.g. a Box being knocked by physics) without any per-frame bookkeeping.
+   */
+  private attachBulletHole(intersection: THREE.Intersection, bullet: Bullet) {
+    const target = intersection.object;
     const radius = bullet.size / 2;
-    const sphereGeometry = new THREE.SphereGeometry(radius, 8, 8);
-    const sphere = new THREE.Mesh(sphereGeometry, highlightMaterial);
 
-    // Create a Cannon.js body for the intersection point (a static marker).
-    const intersectionBody = new CANNON.Body({
-      mass: CANNON.Body.STATIC, // No mass
-      shape: new CANNON.Sphere(radius), // Match the sphere's actual radius
-      position: new CANNON.Vec3(position.x, position.y, position.z),
-    });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 8, 8), new THREE.MeshBasicMaterial({ color: bullet.color }));
 
-    // Add the body to the Cannon.js world
-    this.physicsWorld.addBody(intersectionBody);
+    // The intersection point is in world space — convert to the target's
+    // local space so it stays glued to the surface as the target transforms.
+    const localHit = target.worldToLocal(intersection.point.clone());
+    sphere.position.copy(localHit);
 
-    // Save the sphere and body to an array
-    this.bulletHoles.push({ sphere, body: intersectionBody, timestamp: Date.now() });
+    // Inset the marker very slightly along the inverse face normal so it sits
+    // in the surface rather than floating just above it. Falls back gracefully
+    // if the intersection didn't come with a face normal.
+    if (intersection.face?.normal) {
+      sphere.position.addScaledVector(intersection.face.normal, -radius * 0.25);
+    }
 
-    // Add the sphere to the scene
-    this.scene.add(sphere);
+    target.add(sphere);
+    this.bulletHoles.push({ sphere, timestamp: Date.now() });
   }
 
   private applyForce(intersection: THREE.Intersection, bullet: Bullet) {
-    if (intersection.object instanceof RigidBody) {
-      if (intersection.object instanceof Box) {
-        const direction = new THREE.Vector3();
-        this.camera.getWorldDirection(direction);
-        intersection.object.body.applyImpulse(
-          new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage),
-        );
-      }
-    }
+    if (!(intersection.object instanceof RigidBody)) return;
+
+    // Polymorphic — any RigidBody subclass with a dynamic body (Box, Ball)
+    // moves; static ones (e.g. a static plinth Box) implement applyImpulse
+    // as a no-op and shrug it off.
+    const direction = new THREE.Vector3();
+    this.camera.getWorldDirection(direction);
+    const impulse = new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage);
+    // Applying at the impact point gives a rotational moment too — boxes
+    // spin off, the ball gets a tiny bit of english on it.
+    const worldPoint = new CANNON.Vec3(intersection.point.x, intersection.point.y, intersection.point.z);
+    intersection.object.applyImpulse(impulse, worldPoint);
   }
 }

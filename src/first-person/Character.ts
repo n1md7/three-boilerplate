@@ -1,7 +1,5 @@
 import { Vector3 } from 'three';
 import { Camera } from '@/src/setup';
-import { Capsule } from 'three/examples/jsm/math/Capsule.js';
-import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Scene as ThreeScene } from 'three';
 import GUI from 'lil-gui';
 import * as CANNON from 'cannon-es';
@@ -15,28 +13,36 @@ import { FlashLight } from '@/src/first-person/components/FlashLight';
 import { crosshair } from '@/src/game/ui';
 
 /**
- * First-person character — self-contained controller.
+ * First-person character — fully CANNON-based.
  *
- * Owns its body + velocity, command/state machines, input plumbing, and the
- * composed weapon/flashlight/mouse subsystems. The Game just constructs one,
- * calls subscribe()/setup()/update(), and renders the weapon scene through
- * the exposed `weapon` accessor.
+ * The player is a fixed-rotation dynamic CANNON.Body in the same world the
+ * boxes and ball live in. CANNON handles gravity, ground collisions and the
+ * dynamic collisions with knocked-over boxes/ball for free — there's no
+ * separate Octree to keep in sync any more.
  *
- * Commands talk to the character only via move() and jump() so velocity stays
- * encapsulated.
+ * Movement model:
+ *   • Move commands accumulate a unit input vector each frame.
+ *   • update() lerps body.velocity.{x,z} toward `input × stateSpeed`. The
+ *     vertical component is left to CANNON (gravity + jump impulse).
+ *   • Air control lerps more slowly, so mid-air direction changes are damped.
+ *   • Grounded state is derived from the world contact list — any contact on
+ *     this body with a normal pointing roughly up counts as floor.
  */
 export class Character {
-  private readonly sps = 16;
-  private readonly gravity = 30;
-  private readonly jumpVelocity = 10;
-  /** Speed scale while airborne — preserves the old "small air control" feel. */
-  private readonly airControlFactor = 0.16;
+  // Body geometry (a box, used as a stand-in for a capsule — simpler and works
+  // well against axis-aligned obstacles).
+  private readonly radius = 0.35;
+  private readonly height = 1.45;
 
-  private readonly body: Capsule;
-  private readonly velocity: Vector3;
-  /** Per-frame accumulator for move input — Move commands push into this,
-   *  then update() clamps its length to ≤1 so diagonals aren't faster than
-   *  cardinal moves. */
+  // Movement tuning.
+  private readonly jumpVelocity = 6; // m/s vertical impulse on jump (~1.8 m peak)
+  /**
+   * Air-control responsiveness — only applies while airborne. On the ground we
+   * set velocity directly (FPS-arcade feel) so no lerp coefficient is needed.
+   */
+  private readonly airResponsiveness = 8;
+
+  private readonly body: CANNON.Body;
   private readonly inputVector: Vector3;
 
   private readonly commands: CharacterCommands;
@@ -52,18 +58,17 @@ export class Character {
 
   constructor(
     private readonly camera: Camera,
-    private readonly world: Octree,
+    private readonly physicsWorld: CANNON.World,
     scene: ThreeScene,
-    physicsWorld: CANNON.World,
     gui: GUI,
     private readonly spawnPoint = new Vector3(0, 2, 4),
   ) {
-    const start = new Vector3(0, 1, 0);
-    const end = new Vector3(0, 1.75, 0);
-    this.body = new Capsule(start, end, 0.35);
-    this.velocity = new Vector3();
+    this.body = this.createBody();
+    this.body.position.set(this.spawnPoint.x, this.spawnPoint.y + this.height / 2, this.spawnPoint.z);
+    this.physicsWorld.addBody(this.body);
+    this.setupPlayerContactMaterial();
+
     this.inputVector = new Vector3();
-    this.body.translate(spawnPoint);
 
     this.commands = new CharacterCommands();
     this._states = new CharacterStates();
@@ -71,29 +76,23 @@ export class Character {
     this.inputController = new InputController(this.inputHandler);
     this.mouseController = new MouseController(camera);
     this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
-    this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera, physicsWorld);
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera);
 
     scene.add(this.flashlight, this.flashlight.target);
-
-    this.updateCharacter = this.updateCharacter.bind(this);
   }
 
   // ───── Public API for Command objects ─────
 
-  /**
-   * Accumulate a raw movement input vector. Move commands push their
-   * (direction × side-multiplier) here every frame; Character clamps the
-   * combined input to length ≤1 in update() so diagonal movement isn't
-   * faster than cardinal movement. The input is then scaled by the current
-   * state's speed × delta and added to velocity.
-   */
+  /** Accumulate raw input direction (Character clamps + applies in update). */
   move(direction: Vector3): void {
     this.inputVector.add(direction);
   }
 
-  /** Apply a vertical impulse if grounded. */
+  /** Apply a one-shot vertical impulse if grounded. */
   jump(): void {
-    if (this.isGrounded) this.velocity.y = this.jumpVelocity;
+    if (this.isGrounded) {
+      this.body.velocity.y = this.jumpVelocity;
+    }
   }
 
   // ───── Public API for the Game ─────
@@ -102,18 +101,14 @@ export class Character {
     return this._states;
   }
 
-  get capsule() {
-    return this.body;
-  }
-
-  /** Weapon controller exposes its own scene/camera for the second render pass. */
   get weapon() {
     return this.weaponController;
   }
 
   reset() {
-    this.body.translate(this.spawnPoint.clone().sub(this.body.end));
-    this.velocity.set(0, 0, 0);
+    this.body.position.set(this.spawnPoint.x, this.spawnPoint.y + this.height / 2, this.spawnPoint.z);
+    this.body.velocity.set(0, 0, 0);
+    this.body.angularVelocity.set(0, 0, 0);
   }
 
   setup() {
@@ -141,37 +136,48 @@ export class Character {
   }
 
   update(delta: number) {
-    // Respawn if we fell off the map.
-    if (this.body.end.y < -32) this.reset();
+    if (this.body.position.y < -32) this.reset();
 
-    // State follows the active commands every frame.
+    // State follows the active commands.
     this.deriveState();
 
-    // Reset per-frame input, then let move commands fill it.
+    // Collect input from commands.
     this.inputVector.set(0, 0, 0);
     this.commands.execute(delta);
 
-    // Clamp combined input length to ≤1 so that pressing W+D doesn't produce
-    // a 1.28-magnitude vector and thus faster diagonal movement. Cardinal
-    // weights (back 0.9, strafe 0.8) survive because they keep length <1.
+    // Clamp combined input to ≤1 so diagonals don't outpace cardinals.
     const inputLenSq = this.inputVector.lengthSq();
     if (inputLenSq > 1) this.inputVector.divideScalar(Math.sqrt(inputLenSq));
 
-    // Convert the clamped input into a velocity contribution.
+    // Update grounded state from world contacts before deciding how to steer.
+    this.updateGroundedState();
+
+    // Horizontal velocity model: instant on ground, soft lerp in air.
+    //   • On ground we *write* the target velocity directly each frame —
+    //     this is the standard arcade-FPS feel: no acceleration ramp, no
+    //     "dragging-a-fridge" inertia, just snap to top speed and snap to
+    //     stop. The frictionless player ContactMaterial keeps CANNON from
+    //     undoing it during the next physics step.
+    //   • In air we lerp toward the target so jump momentum is preserved
+    //     and mid-air direction changes are gentle (committed jumps feel
+    //     better than infinitely-controllable ones).
     const speed = this._states.currentState.getSpeed();
-    const factor = this.isGrounded ? 1.0 : this.airControlFactor;
-    this.velocity.addScaledVector(this.inputVector, speed * factor * delta);
+    const targetX = this.inputVector.x * speed;
+    const targetZ = this.inputVector.z * speed;
 
-    // Sub-step capsule physics for stable collisions at high speed.
-    const subDelta = Math.min(0.05, delta) / this.sps;
-    for (let step = 0; step < this.sps; step++) this.updateCharacter(subDelta);
+    if (this.isGrounded) {
+      this.body.velocity.x = targetX;
+      this.body.velocity.z = targetZ;
+    } else {
+      const t = Math.min(1, delta * this.airResponsiveness);
+      this.body.velocity.x += (targetX - this.body.velocity.x) * t;
+      this.body.velocity.z += (targetZ - this.body.velocity.z) * t;
+    }
+    // y is left for CANNON: gravity + jump impulse.
 
-    // While airborne, hard-cap horizontal velocity to the natural ground
-    // terminal so repeated jumps can't slowly accelerate the character past
-    // the on-foot top speed. (Ground damping handles this for us when grounded.)
-    this.clampAirHorizontalSpeed();
+    // Camera follows the body's eye height.
+    this.camera.position.set(this.body.position.x, this.body.position.y + this.height / 2 - this.radius, this.body.position.z);
 
-    // Once-per-frame follow-the-camera updates.
     this.flashlight.adjustBy(this.camera);
     this.weaponController.adjustBy(this.camera);
     this.weaponController.update(delta);
@@ -182,32 +188,42 @@ export class Character {
   // ───── Internals ─────
 
   /**
-   * Cap horizontal speed while airborne to the natural ground terminal.
+   * Box body with fixed rotation so the player never tips over. A Box stand-in
+   * for a capsule is fine for cube-shaped obstacles — CANNON's contact solver
+   * handles it cleanly.
    *
-   * Why this is needed: in air the movement contribution is scaled by
-   * airControlFactor (0.16) but damping is also reduced (×0.1). The damping
-   * reduction is larger than the input reduction, so the natural equilibrium
-   * velocity in air ends up *higher* than on the ground. Repeated jumping
-   * while holding a direction lets velocity creep up toward the air terminal.
-   * Clamping fixes that without changing ground feel — when grounded, normal
-   * damping is already tight enough to hold velocity at the natural cap.
+   * The body is tagged with a dedicated material so we can configure
+   * player-vs-world friction independently of world-vs-world friction in
+   * setupPlayerContactMaterial().
    */
-  private clampAirHorizontalSpeed() {
-    if (this.isGrounded) return;
-    const speed = this._states.currentState.getSpeed();
-    if (speed === 0) return; // idle — let damping decelerate naturally
+  private createBody(): CANNON.Body {
+    const body = new CANNON.Body({
+      mass: 70, // kg
+      material: new CANNON.Material('player'),
+      shape: new CANNON.Box(new CANNON.Vec3(this.radius, this.height / 2, this.radius)),
+      fixedRotation: true,
+      linearDamping: 0,
+      angularDamping: 1,
+    });
+    body.updateMassProperties();
+    return body;
+  }
 
-    // Natural ground terminal ≈ speed * delta / (1 - dampingRetention).
-    // With delta=1/60 and ground damping retention ≈ 0.88, that's ≈ speed * 0.139.
-    // Use a slightly looser cap (* 0.15) so we don't bite during normal play.
-    const maxHorizontal = speed * 0.15;
-    const horizSq = this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z;
-    const maxSq = maxHorizontal * maxHorizontal;
-    if (horizSq <= maxSq) return;
-
-    const scale = maxHorizontal / Math.sqrt(horizSq);
-    this.velocity.x *= scale;
-    this.velocity.z *= scale;
+  /**
+   * Adds a frictionless ContactMaterial between the player and every other
+   * body in the world (which all share the world's default material). Without
+   * this, the default ~0.3 friction continuously brakes the player against
+   * the ground and any wall it touches — making top-speed feel sluggish.
+   * World-vs-world friction (box-on-box, box-on-ground) is unaffected.
+   */
+  private setupPlayerContactMaterial() {
+    const playerMaterial = this.body.material;
+    if (!playerMaterial) return;
+    const contact = new CANNON.ContactMaterial(playerMaterial, this.physicsWorld.defaultMaterial, {
+      friction: 0,
+      restitution: 0,
+    });
+    this.physicsWorld.addContactMaterial(contact);
   }
 
   private deriveState() {
@@ -219,36 +235,24 @@ export class Character {
     else this._states.walk();
   }
 
-  private updateCharacter(deltaTime: number) {
-    const damping = { val: Math.exp(-8 * deltaTime) - 1 };
-
-    if (!this.isGrounded) {
-      this.velocity.y -= this.gravity * deltaTime;
-      damping.val *= 0.1; // air resistance
-    }
-
-    this.velocity.addScaledVector(this.velocity, damping.val);
-    const deltaPosition = this.velocity.clone().multiplyScalar(deltaTime);
-    this.body.translate(deltaPosition);
-
-    this.evaluateIntersections();
-
-    this.camera.position.copy(this.body.end);
-  }
-
-  private evaluateIntersections() {
+  /**
+   * True if any contact in the world involves this body with a roughly-upward
+   * surface normal. CANNON's contact.ni points from `bi` toward `bj`, so the
+   * sign of the y-component depends on which side our body sits on.
+   */
+  private updateGroundedState() {
     this.isGrounded = false;
-    const intersect = this.world.capsuleIntersect(this.body);
-
-    if (!intersect) return;
-
-    this.isGrounded = intersect.normal.y > 0;
-
-    if (!this.isGrounded) {
-      this.velocity.addScaledVector(intersect.normal, -intersect.normal.dot(this.velocity));
+    for (const contact of this.physicsWorld.contacts) {
+      if (contact.bi !== this.body && contact.bj !== this.body) continue;
+      const isBi = contact.bi === this.body;
+      // We want the normal that points FROM the surface INTO us — that's
+      // -ni if we are bi, +ni if we are bj.
+      const ny = isBi ? -contact.ni.y : contact.ni.y;
+      if (ny > 0.5) {
+        this.isGrounded = true;
+        return;
+      }
     }
-
-    this.body.translate(intersect.normal.multiplyScalar(intersect.depth));
   }
 
   private updateCrosshair() {

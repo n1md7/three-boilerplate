@@ -1,6 +1,5 @@
 import { Performance } from '@/src/setup/utils/Performance';
 import { WindowUtils } from '@/src/setup/utils/window.utils';
-import { Octree } from 'three/examples/jsm/math/Octree.js';
 import { Timestamp } from '@/src/setup/utils/Timestamp';
 import { Renderer, Camera, Scene } from '@/src/setup';
 import { RigidBody } from '@/src/abstract/RigidBody';
@@ -17,8 +16,11 @@ import { GameState, GameStates } from '@/src/game/types/state.interface';
 
 /**
  * Top-level orchestrator. Constructs the engine pieces, owns the game-state
- * machine (Idle/Active/Paused), and drives the render loop. First-person
- * concerns (movement, weapons, flashlight, crosshair) live inside Character.
+ * machine (Idle/Active/Paused), and drives the render loop.
+ *
+ * Single physics system: CANNON is the only collision/integration world. The
+ * player is a fixed-rotation dynamic body inside it, so player-vs-world and
+ * player-vs-dynamic-box collision is automatic and always up to date.
  */
 export class Game {
   private readonly fps: 30 | 60 | 90 | 120;
@@ -27,7 +29,6 @@ export class Game {
   private readonly gui: GUI;
   private readonly resizer: WindowUtils;
   private readonly timestamp: Timestamp;
-  private readonly collisionWorld: Octree;
   private readonly performance: Performance;
   private readonly physicsWorld: CANNON.World;
   private readonly renderer: Renderer;
@@ -50,14 +51,13 @@ export class Game {
     this.gui = new GUI();
     this.clock = new Timer();
     this.timestamp = new Timestamp();
-    this.collisionWorld = new Octree();
     this.performance = new Performance();
     this.physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
     this.renderer = new Renderer();
     this.camera = new Camera();
-    this.scene = new Scene(this.gui.addFolder('Main scene'), this.collisionWorld, this.physicsWorld);
+    this.scene = new Scene(this.gui.addFolder('Main scene'), this.physicsWorld);
 
-    this.player = new Character(this.camera, this.collisionWorld, this.scene, this.physicsWorld, this.gui.addFolder('Player'));
+    this.player = new Character(this.camera, this.physicsWorld, this.scene, this.gui.addFolder('Player'));
 
     this.resizer = new WindowUtils(this.renderer, this.camera, this.player.weapon.camera);
     this.update = this.update.bind(this);
@@ -69,13 +69,7 @@ export class Game {
     this.performance.show();
     this.resizer.subscribe();
     this.gui.show(Debug.enabled());
-    this.scene
-      .addLight()
-      .addGround()
-      .addSky(Assets.Models.Sky)
-      .addStairs(Assets.Textures.Box)
-      .addShootingTarget(Assets.Models.ShootingTarget)
-      .addBoxes(Assets.Textures.Box, 64);
+    this.scene.addLight().addGround().addSky(Assets.Models.Sky).addDemoStage(Assets.Textures.Box);
     this.setState('Active');
     this.player.subscribe();
 
@@ -101,21 +95,23 @@ export class Game {
 
   nextTick() {
     this.physicsWorld.fixedStep(1 / this.fps);
-    // three.js Timer doesn't self-advance — it requires an explicit update()
-    // before getDelta() returns anything non-zero. (Different from Clock.)
     this.clock.update();
     const delta = this.clock.getDelta();
+
     if (this.timestamp.delta < this.delay) {
       this.timestamp.update();
       return;
     }
 
     if (this.camera.position.y <= -25) this.player.reset();
-    this.player.update(delta);
 
+    // Sync every dynamic mesh transform to its CANNON body before driving
+    // player logic — so the player sees the latest world state.
     for (const child of this.scene.children) {
       if (child instanceof RigidBody) child.update();
     }
+
+    this.player.update(delta);
 
     // Main world pass.
     this.renderer.clear();
