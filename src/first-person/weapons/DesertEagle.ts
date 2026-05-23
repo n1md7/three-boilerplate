@@ -1,6 +1,6 @@
 import { Bullet } from '@/src/first-person/components/Bullet';
 import { Weapon } from '@/src/first-person/weapons/Weapon';
-import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Vector3 } from 'three';
 import GUI from 'lil-gui';
 

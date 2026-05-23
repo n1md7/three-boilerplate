@@ -1,34 +1,93 @@
-import { Vector2, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { Camera } from '@/src/setup';
-import { Capsule } from 'three/examples/jsm/math/Capsule';
+import { Capsule } from 'three/examples/jsm/math/Capsule.js';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
+import { Scene as ThreeScene } from 'three';
+import GUI from 'lil-gui';
+import * as CANNON from 'cannon-es';
 import { CharacterCommands } from '@/src/first-person/character/commands/Commands';
 import { CharacterStates } from '@/src/first-person/character/states/States';
+import { InputHandler } from '@/src/first-person/character/InputHandler';
+import { InputController } from '@/src/first-person/controllers/InputController';
+import { MouseController } from '@/src/first-person/controllers/MouseController';
+import { WeaponController } from '@/src/first-person/controllers/WeaponController';
+import { FlashLight } from '@/src/first-person/components/FlashLight';
+import { crosshair } from '@/src/game/ui';
 
+/**
+ * First-person character — self-contained controller.
+ *
+ * Owns its body + velocity, command/state machines, input plumbing, and the
+ * composed weapon/flashlight/mouse subsystems. The Game just constructs one,
+ * calls subscribe()/setup()/update(), and renders the weapon scene through
+ * the exposed `weapon` accessor.
+ *
+ * Commands talk to the character only via move() and jump() so velocity stays
+ * encapsulated.
+ */
 export class Character {
-  private readonly sps = 16; // Steps Per Frame
+  private readonly sps = 16;
   private readonly gravity = 30;
+  private readonly jumpVelocity = 10;
+  /** Speed scale while airborne — preserves the old "small air control" feel. */
+  private readonly airControlFactor = 0.16;
 
   private readonly body: Capsule;
-  public readonly velocity: Vector3;
+  private readonly velocity: Vector3;
+
+  private readonly commands: CharacterCommands;
+  private readonly _states: CharacterStates;
+  private readonly inputHandler: InputHandler;
+  private readonly inputController: InputController;
+  private readonly mouseController: MouseController;
+  private readonly weaponController: WeaponController;
+  private readonly flashlight: FlashLight;
 
   private isGrounded = false;
+  private accuracy = 100;
 
   constructor(
     private readonly camera: Camera,
     private readonly world: Octree,
-    private readonly commands: CharacterCommands,
-    private readonly _states: CharacterStates,
-    private readonly spawnPoint = new Vector3(0, 2, 4)
+    scene: ThreeScene,
+    physicsWorld: CANNON.World,
+    gui: GUI,
+    private readonly spawnPoint = new Vector3(0, 2, 4),
   ) {
     const start = new Vector3(0, 1, 0);
     const end = new Vector3(0, 1.75, 0);
     this.body = new Capsule(start, end, 0.35);
-    this.velocity = new Vector3(0); // Stay still at first
+    this.velocity = new Vector3();
     this.body.translate(spawnPoint);
+
+    this.commands = new CharacterCommands();
+    this._states = new CharacterStates();
+    this.inputHandler = new InputHandler(this, camera, this.commands);
+    this.inputController = new InputController(this.inputHandler);
+    this.mouseController = new MouseController(camera);
+    this.flashlight = new FlashLight(gui.addFolder('Flashlight'));
+    this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera, physicsWorld);
+
+    scene.add(this.flashlight, this.flashlight.target);
 
     this.updateCharacter = this.updateCharacter.bind(this);
   }
+
+  // ───── Public API for Command objects ─────
+
+  /** Add a horizontal movement contribution scaled by current state speed. */
+  move(direction: Vector3, delta: number): void {
+    const speed = this._states.currentState.getSpeed();
+    const factor = this.isGrounded ? 1.0 : this.airControlFactor;
+    this.velocity.add(direction.multiplyScalar(speed * factor * delta));
+  }
+
+  /** Apply a vertical impulse if grounded. */
+  jump(): void {
+    if (this.isGrounded) this.velocity.y = this.jumpVelocity;
+  }
+
+  // ───── Public API for the Game ─────
 
   get states() {
     return this._states;
@@ -38,68 +97,71 @@ export class Character {
     return this.body;
   }
 
-  reset() {
-    this.body.translate(this.spawnPoint.sub(this.body.end));
+  /** Weapon controller exposes its own scene/camera for the second render pass. */
+  get weapon() {
+    return this.weaponController;
   }
 
-  startMovingWhenIdle() {
-    if (this.states.isIdle()) this.states.walk();
+  reset() {
+    this.body.translate(this.spawnPoint.clone().sub(this.body.end));
+    this.velocity.set(0, 0, 0);
+  }
+
+  setup() {
+    this.weaponController.setup();
+  }
+
+  subscribe() {
+    this.inputController.subscribe();
+    this.mouseController.subscribe();
+
+    this.inputController.addEventListener('flashlight:toggle', () => this.flashlight.toggle());
+    this.inputController.addEventListener('weapon:reload', () => this.weaponController.reload());
+    this.inputController.addEventListener('weapon:switch', (event) => {
+      if (event instanceof CustomEvent) {
+        this.weaponController.setWeapon(event.detail.weaponIndex);
+      }
+    });
+    this.mouseController.addEventListener('weapon:start-shoot', () => this.weaponController.startShoot());
+    this.mouseController.addEventListener('weapon:stop-shoot', () => this.weaponController.stopShoot());
+  }
+
+  unsubscribe() {
+    this.inputController.unsubscribe();
+    this.mouseController.unsubscribe();
   }
 
   update(delta: number) {
-    // INFO: Respawn player if it falls off the map
-    if (this.body.end.y < -32) this.reset(); // 32 meters below the map or whatever the 1 unit is
+    // Respawn if we fell off the map.
+    if (this.body.end.y < -32) this.reset();
 
-    if (this.commands.getActiveCommandsCount() === 0) this._states.idle();
+    // State follows the active commands every frame.
+    this.deriveState();
 
-    const deltaTime = Math.min(0.05, delta) / this.sps;
-
+    // Movement commands push contributions into velocity.
     this.commands.execute(delta);
 
-    // INFO: To enhance collision detection accuracy,
-    // we divide the collision checking process into sub-steps.
-    // This approach helps mitigate the potential issue of objects
-    // passing through each other too rapidly to be detected reliably.
-    const frame = { steps: this.sps };
-    do this.updateCharacter(deltaTime);
-    while (--frame.steps > 0);
+    // Sub-step capsule physics for stable collisions at high speed.
+    const subDelta = Math.min(0.05, delta) / this.sps;
+    for (let step = 0; step < this.sps; step++) this.updateCharacter(subDelta);
+
+    // Once-per-frame follow-the-camera updates.
+    this.flashlight.adjustBy(this.camera);
+    this.weaponController.adjustBy(this.camera);
+    this.weaponController.update(delta);
+
+    this.updateCrosshair();
   }
 
-  // action(action: Action, deltaTime: number) {
-  //   const { goLeft, goRight, goForward, goBackward } = action;
-  //   const speedDelta = this.getSpeedDelta(deltaTime, action.sprint);
-  //
-  //   const forwardVector = this.getForwardVector(new Vector3());
-  //   const sideVector = this.getSideVector(new Vector3());
-  //
-  //   // Makes sure that diagonal movement isn't faster as it would be otherwise
-  //   const velocity = goLeft || goRight ? speedDelta * 0.707 : speedDelta;
-  //   if (goForward) {
-  //     // Forward movement is fastest as long as left or right aren't pressed
-  //     this.velocity.add(forwardVector.multiplyScalar(velocity));
-  //     if (goLeft) this.velocity.add(sideVector.multiplyScalar(-velocity));
-  //     if (goRight) this.velocity.add(sideVector.multiplyScalar(velocity));
-  //   } else if (goBackward) {
-  //     this.velocity.add(forwardVector.multiplyScalar(-velocity));
-  //     if (goLeft) this.velocity.add(sideVector.multiplyScalar(-velocity));
-  //     if (goRight) this.velocity.add(sideVector.multiplyScalar(velocity));
-  //   } else {
-  //     // Sideways movement a bit slower
-  //     if (goLeft) this.velocity.add(sideVector.multiplyScalar(-speedDelta * 0.9));
-  //     if (goRight) this.velocity.add(sideVector.multiplyScalar(speedDelta * 0.9));
-  //   }
-  //
-  //   if (this.isGrounded && action.jump) {
-  //     this.velocity.y = this.jumpVelocity;
-  //   }
-  // }
+  // ───── Internals ─────
 
-  rotation(rotation: Vector2) {
-    this.camera.rotation.x = rotation.x;
-    this.camera.rotation.y = rotation.y;
+  private deriveState() {
+    const isMoving = this.commands.hasKind('move');
+    const isSprinting = this.commands.hasKind('sprint');
 
-    // INFO: Limit the vertical rotation
-    this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+    if (!isMoving) this._states.idle();
+    else if (isSprinting) this._states.sprint();
+    else this._states.walk();
   }
 
   private updateCharacter(deltaTime: number) {
@@ -107,9 +169,7 @@ export class Character {
 
     if (!this.isGrounded) {
       this.velocity.y -= this.gravity * deltaTime;
-
-      // INFO: small air resistance
-      damping.val *= 0.1;
+      damping.val *= 0.1; // air resistance
     }
 
     this.velocity.addScaledVector(this.velocity, damping.val);
@@ -118,7 +178,6 @@ export class Character {
 
     this.evaluateIntersections();
 
-    // Update the camera position
     this.camera.position.copy(this.body.end);
   }
 
@@ -126,14 +185,28 @@ export class Character {
     this.isGrounded = false;
     const intersect = this.world.capsuleIntersect(this.body);
 
-    if (intersect) {
-      this.isGrounded = intersect.normal.y > 0;
+    if (!intersect) return;
 
-      if (!this.isGrounded) {
-        this.velocity.addScaledVector(intersect.normal, -intersect.normal.dot(this.velocity));
-      }
+    this.isGrounded = intersect.normal.y > 0;
 
-      this.body.translate(intersect.normal.multiplyScalar(intersect.depth));
+    if (!this.isGrounded) {
+      this.velocity.addScaledVector(intersect.normal, -intersect.normal.dot(this.velocity));
     }
+
+    this.body.translate(intersect.normal.multiplyScalar(intersect.depth));
+  }
+
+  private updateCrosshair() {
+    this.accuracy = 100;
+
+    const isSprinting = this.commands.hasKind('sprint');
+    const isMoving = this.commands.hasKind('move');
+    const isJumpHeld = this.commands.hasKind('jump');
+
+    if (this.weaponController.triggerIsPressed) this.accuracy -= 50;
+    if (isMoving) this.accuracy -= 25 + (isSprinting ? 25 : 0);
+    if (isJumpHeld) this.accuracy -= 50;
+
+    crosshair.setAccuracy(this.accuracy);
   }
 }

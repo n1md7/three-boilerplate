@@ -1,8 +1,12 @@
 import Camera from '@/src/setup/Camera';
-import { Renderer } from 'three';
+import { WebGLRenderer } from 'three';
 
 export class WindowUtils {
-  constructor(private readonly renderer: Renderer, private readonly camera: Camera, private readonly weaponCamera: Camera) {
+  constructor(
+    private readonly renderer: WebGLRenderer,
+    private readonly camera: Camera,
+    private readonly weaponCamera: Camera,
+  ) {
     this.resize = this.resize.bind(this);
   }
 

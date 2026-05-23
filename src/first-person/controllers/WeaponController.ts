@@ -18,9 +18,18 @@ export class WeaponController {
   private readonly weapons: Weapon[];
   private weaponIndex: number;
 
-  public triggerIsPressed = false;
+  private triggerPressed = false;
 
-  constructor(private readonly gui: GUI, playerScene: Scene, playerCamera: Camera, physicsWorld: CANNON.World) {
+  get triggerIsPressed(): boolean {
+    return this.triggerPressed;
+  }
+
+  constructor(
+    private readonly gui: GUI,
+    playerScene: Scene,
+    playerCamera: Camera,
+    physicsWorld: CANNON.World,
+  ) {
     this.weapons = [];
     this.weaponIndex = 0;
     this.bulletController = new BulletController(playerScene, playerCamera, physicsWorld);
@@ -64,16 +73,16 @@ export class WeaponController {
   }
 
   startShoot() {
-    this.triggerIsPressed = true;
+    this.triggerPressed = true;
   }
 
   stopShoot() {
-    this.triggerIsPressed = false;
+    this.triggerPressed = false;
   }
 
   private shoot() {
     if (this.weapon.shoot()) this.bullet.shoot(this.weapon);
-    if (this.weapon.isSemiAutomatic) this.triggerIsPressed = false;
+    if (this.weapon.isSemiAutomatic) this.triggerPressed = false;
   }
 
   reload() {
@@ -85,7 +94,7 @@ export class WeaponController {
   }
 
   update(delta: number) {
-    if (this.triggerIsPressed) this.shoot();
+    if (this.triggerPressed) this.shoot();
     this.weapon.update(delta);
     this.bullet.update(this.weapon);
   }

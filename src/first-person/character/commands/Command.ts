@@ -1,43 +1,45 @@
 import { Character } from '@/src/first-person/Character';
 import { Camera } from '@/src/setup';
-import * as THREE from 'three';
+import { Vector3 } from 'three';
 
+export type CommandKind = 'move' | 'sprint' | 'jump';
+
+/**
+ * Command pattern base for character actions bound to held keys.
+ *
+ * Lifecycle (driven by CharacterCommands):
+ *   start()   — called once when the key is first pressed
+ *   execute() — called every frame while the key is held
+ *   stop()    — called once when the key is released
+ *
+ * Defaults are no-ops; subclasses override only what they need.
+ */
 export abstract class Command {
-  protected constructor(protected readonly character: Character, protected readonly camera: Camera) {}
+  /** Discriminator the character uses to derive its movement state. */
+  abstract readonly kind: CommandKind;
 
-  abstract execute(delta: number): void;
+  protected constructor(
+    protected readonly character: Character,
+    protected readonly camera: Camera,
+  ) {}
 
-  stop() {}
+  start(): void {}
+  execute(_delta: number): void {}
+  stop(): void {}
 
-  /**
-   * Get the Z axis vector of the camera.
-   *
-   * Is used to control forward/backward movement.
-   * @protected
-   */
-  protected getZAxisVector() {
-    const vector = this.camera.getWorldDirection(new THREE.Vector3());
+  /** Forward-facing horizontal unit vector of the camera. */
+  protected getZAxisVector(): Vector3 {
+    const vector = this.camera.getWorldDirection(new Vector3());
     vector.y = 0;
     vector.normalize();
-
     return vector;
   }
 
-  /**
-   * Get the X axis vector of the camera.
-   *
-   * Is used to control side movement.
-   * @protected
-   */
-  protected getXAxisVector() {
-    const vector = new THREE.Vector3();
-    this.camera.getWorldDirection(vector);
-    // Cross product with the world up vector to get the X axis
-    // It gives a vector that is perpendicular to the camera direction and the world up vector
-    // this.camera.up and new THREE.Vector3(0, 1, 0) are the same
-    vector.cross(new THREE.Vector3(0, 1, 0));
+  /** Right-facing horizontal unit vector of the camera. */
+  protected getXAxisVector(): Vector3 {
+    const vector = this.camera.getWorldDirection(new Vector3());
+    vector.cross(new Vector3(0, 1, 0));
     vector.normalize();
-
     return vector;
   }
 }

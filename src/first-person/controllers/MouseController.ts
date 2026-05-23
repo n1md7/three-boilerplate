@@ -1,45 +1,51 @@
 import { Camera } from '@/src/setup';
-import { FlashLight } from '@/src/first-person/components/FlashLight';
 
+/**
+ * Mouse controller.
+ *
+ * Owns camera rotation while the pointer is locked, and emits weapon trigger
+ * events. Decoupled from the flashlight/weapons themselves — anything that
+ * follows the camera does so during the per-frame update inside Character.
+ */
 export class MouseController extends EventTarget {
   private readonly mouseSensitivity = 0.002;
 
-  constructor(private readonly camera: Camera, private readonly flashlight: FlashLight) {
+  private readonly onMouseMoveBound = this.onMouseMove.bind(this);
+  private readonly onMouseDownBound = this.onMouseDown.bind(this);
+  private readonly onMouseUpBound = this.onMouseUp.bind(this);
+
+  constructor(private readonly camera: Camera) {
     super();
   }
 
   subscribe() {
-    document.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
-    document.addEventListener('mousedown', this.mouseClickHandler.bind(this));
-    document.addEventListener('mouseup', this.mouseReleaseHandler.bind(this));
+    document.addEventListener('mousemove', this.onMouseMoveBound);
+    document.addEventListener('mousedown', this.onMouseDownBound);
+    document.addEventListener('mouseup', this.onMouseUpBound);
   }
 
   unsubscribe() {
-    document.removeEventListener('mousemove', this.mouseMoveHandler.bind(this));
-    document.removeEventListener('click', this.mouseClickHandler.bind(this));
-    document.removeEventListener('mouseup', this.mouseReleaseHandler.bind(this));
+    document.removeEventListener('mousemove', this.onMouseMoveBound);
+    document.removeEventListener('mousedown', this.onMouseDownBound);
+    document.removeEventListener('mouseup', this.onMouseUpBound);
   }
 
-  private mouseMoveHandler({ movementY, movementX }: MouseEvent) {
-    // INFO: only updates camera rotation if pointer is locked
+  private onMouseMove({ movementX, movementY }: MouseEvent) {
     if (document.pointerLockElement !== document.body) return;
-    // INFO: movement(X|Y) are delta values
+
     this.camera.rotation.y -= movementX * this.mouseSensitivity;
     this.camera.rotation.x -= movementY * this.mouseSensitivity;
 
-    // INFO: clamp camera rotation on X axis
+    // Clamp vertical look so the camera can't flip over.
     this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
-
-    this.flashlight.adjustBy(this.camera);
   }
 
-  private mouseClickHandler() {
-    if (document.pointerLockElement !== null) {
-      this.dispatchEvent(new Event('weapon:start-shoot'));
-    }
+  private onMouseDown() {
+    if (document.pointerLockElement === null) return;
+    this.dispatchEvent(new Event('weapon:start-shoot'));
   }
 
-  private mouseReleaseHandler() {
+  private onMouseUp() {
     this.dispatchEvent(new Event('weapon:stop-shoot'));
   }
 }

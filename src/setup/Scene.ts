@@ -1,6 +1,6 @@
 import { GUI } from 'lil-gui';
 import { Octree } from 'three/examples/jsm/math/Octree.js';
-import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AxesHelper, GridHelper, PointLight } from 'three';
 import { Texture, RepeatWrapping } from 'three';
 import { Scene as ThreeScene, Color, Fog, PointLightHelper } from 'three';
@@ -16,7 +16,7 @@ export default class Scene extends ThreeScene {
     private readonly collisionWorld: Octree,
     private readonly physicsWorld: CANNON.World,
     private readonly width = 100,
-    private readonly depth = 100
+    private readonly depth = 100,
   ) {
     super();
 

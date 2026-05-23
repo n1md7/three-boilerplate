@@ -1,5 +1,7 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
+
+import { defineConfig } from 'vitest/config';
+import { cwd } from 'node:process';
 import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
@@ -11,12 +13,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': process.cwd(),
+      '@': cwd(),
     },
   },
   base: './',
   build: {
-    chunkSizeWarningLimit: 700,
+    chunkSizeWarningLimit: 1500,
     sourcemap: true,
     assetsDir: 'assets',
     emptyOutDir: true,
@@ -27,8 +29,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     coverage: {
-      all: true,
-      provider: 'c8',
+      include: ['**/src/**/*.ts'],
+      provider: 'v8',
       reporter: ['cobertura', 'text', 'html'],
       exclude: ['*.cjs', '*.config.*', 'dist/**', 'src/**.d.ts', 'tests'],
     },
