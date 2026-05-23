@@ -102,15 +102,19 @@ export class BulletController {
     // Create a new material with a brighter color
     const highlightMaterial = new THREE.MeshBasicMaterial({ color: bullet.color });
 
-    // Create a sphere to indicate the position of the collision
-    const sphereGeometry = new THREE.SphereGeometry(bullet.size, 8, 8);
+    // Create a sphere to indicate the position of the collision.
+    // `bullet.size` is the *diameter* (matches the field's doc comment and how
+    // Bullet itself constructs its geometry as SphereGeometry(size / 2)), so the
+    // marker's radius must also be size / 2 to match the bullet visually.
+    const radius = bullet.size / 2;
+    const sphereGeometry = new THREE.SphereGeometry(radius, 8, 8);
     const sphere = new THREE.Mesh(sphereGeometry, highlightMaterial);
 
-    // Create a Cannon.js body for the intersection point (a static body since it's just a marker)
+    // Create a Cannon.js body for the intersection point (a static marker).
     const intersectionBody = new CANNON.Body({
       mass: CANNON.Body.STATIC, // No mass
-      shape: new CANNON.Sphere(bullet.size), // Match the sphere size
-      position: new CANNON.Vec3(position.x, position.y, position.z), // Set initial position
+      shape: new CANNON.Sphere(radius), // Match the sphere's actual radius
+      position: new CANNON.Vec3(position.x, position.y, position.z),
     });
 
     // Add the body to the Cannon.js world
@@ -129,7 +133,7 @@ export class BulletController {
         const direction = new THREE.Vector3();
         this.camera.getWorldDirection(direction);
         intersection.object.body.applyImpulse(
-          new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage)
+          new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage),
         );
       }
     }
