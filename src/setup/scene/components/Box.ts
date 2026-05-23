@@ -24,7 +24,7 @@ export class Box extends RigidBody {
 
     if (Debug.enabled()) {
       this.add(new THREE.AxesHelper(size));
-      this.add(new THREE.GridHelper(size, size * 10));
+      // this.add(new THREE.GridHelper(size, size * 10));
     }
   }
 

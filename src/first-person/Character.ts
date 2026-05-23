@@ -42,6 +42,23 @@ export class Character {
    */
   private readonly airResponsiveness = 8;
 
+  // Headbob tuning — exposed live via lil-gui (see setupHeadbobGui). The camera
+  // Y is offset by |sin| of an accumulating phase (sharp upward "footstep"
+  // feel). Amplitude and frequency both scale with horizontal speed so sprint
+  // bobs harder and faster than walk; the whole thing smoothly ramps on and
+  // off via `bobIntensity` to avoid snapping.
+  // Not `readonly` so the GUI can mutate them at runtime.
+  private bobAmplitude = 0.07; // metres at base walk speed
+  private bobFrequencyBase = 1.9; // bobs/sec at base walk speed
+  /** Reference horizontal speed at which `bobFrequencyBase` and `bobAmplitude` apply. */
+  private bobReferenceSpeed = 7;
+  /** How fast the bob ramps in/out as you start/stop moving (per-second). */
+  private bobOnsetRate = 8;
+
+  private bobTime = 0; // accumulating bob phase (in cycles)
+  private bobIntensity = 0; // smoothed 0…1; how much bob is currently visible
+  private headbobOffsetY = 0; // current vertical offset applied to the camera
+
   private readonly body: CANNON.Body;
   private readonly inputVector: Vector3;
 
@@ -79,6 +96,53 @@ export class Character {
     this.weaponController = new WeaponController(gui.addFolder('Weapons'), scene, camera);
 
     scene.add(this.flashlight, this.flashlight.target);
+
+    this.setupHeadbobGui(gui);
+  }
+
+  /**
+   * Adds live-tweakable headbob sliders under the Player folder.
+   *
+   * lil-gui's TypeScript signature enforces `keyof this` on the property key,
+   * which blocks direct binding to private fields. We use the same proxy
+   * pattern Weapon.ts uses — a closure-bound object whose getter/setters
+   * reflect into the private fields. The fields themselves stay encapsulated.
+   */
+  private setupHeadbobGui(gui: GUI) {
+    const folder = gui.addFolder('Headbob');
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    const tunables = {
+      get amplitude(): number {
+        return self.bobAmplitude;
+      },
+      set amplitude(v: number) {
+        self.bobAmplitude = v;
+      },
+      get frequency(): number {
+        return self.bobFrequencyBase;
+      },
+      set frequency(v: number) {
+        self.bobFrequencyBase = v;
+      },
+      get refSpeed(): number {
+        return self.bobReferenceSpeed;
+      },
+      set refSpeed(v: number) {
+        self.bobReferenceSpeed = v;
+      },
+      get onsetRate(): number {
+        return self.bobOnsetRate;
+      },
+      set onsetRate(v: number) {
+        self.bobOnsetRate = v;
+      },
+    };
+    folder.add(tunables, 'amplitude').min(0).max(0.2).step(0.005).name('amplitude (m)');
+    folder.add(tunables, 'frequency').min(0.5).max(4).step(0.1).name('frequency (Hz)');
+    folder.add(tunables, 'refSpeed').min(3).max(15).step(0.5).name('ref speed (m/s)');
+    folder.add(tunables, 'onsetRate').min(1).max(20).step(1).name('onset rate');
+    folder.close();
   }
 
   // ───── Public API for Command objects ─────
@@ -175,8 +239,15 @@ export class Character {
     }
     // y is left for CANNON: gravity + jump impulse.
 
-    // Camera follows the body's eye height.
-    this.camera.position.set(this.body.position.x, this.body.position.y + this.height / 2 - this.radius, this.body.position.z);
+    // Headbob — advance/decay the phase, then place the camera at eye height
+    // plus the current bob offset. Weapon.adjustBy reads camera.position, so
+    // the weapon inherits the bob automatically without any extra plumbing.
+    this.updateHeadbob(delta);
+    this.camera.position.set(
+      this.body.position.x,
+      this.body.position.y + this.height / 2 - this.radius + this.headbobOffsetY,
+      this.body.position.z,
+    );
 
     this.flashlight.adjustBy(this.camera);
     this.weaponController.adjustBy(this.camera);
@@ -253,6 +324,44 @@ export class Character {
         return;
       }
     }
+  }
+
+  /**
+   * Headbob — a small, organic vertical bob of the camera while the player is
+   * grounded and moving. Implemented as:
+   *
+   *   • A phase accumulator (`bobTime`) advanced by `speed × frequencyBase`
+   *     so faster movement bobs more quickly per second.
+   *   • |sin(2π × phase)| gives a sharp upward "footstep" shape rather than
+   *     a smooth oscillation that dips into negative Y.
+   *   • A separate `bobIntensity` lerp ramps the whole effect in/out smoothly
+   *     so the bob doesn't snap on the frame the player starts/stops moving.
+   *   • Amplitude also scales with speed so sprint bobs harder than walk.
+   */
+  private updateHeadbob(delta: number) {
+    const isMoving = this.commands.hasKind('move');
+    const target = this.isGrounded && isMoving ? 1 : 0;
+    this.bobIntensity += (target - this.bobIntensity) * Math.min(1, delta * this.bobOnsetRate);
+
+    if (this.isGrounded && isMoving) {
+      const horizSpeed = Math.hypot(this.body.velocity.x, this.body.velocity.z);
+      const speedRatio = horizSpeed / this.bobReferenceSpeed;
+      // Cycles-per-second scales linearly with horizontal speed.
+      this.bobTime += delta * this.bobFrequencyBase * speedRatio;
+    }
+
+    if (this.bobIntensity < 0.001) {
+      this.headbobOffsetY = 0;
+      return;
+    }
+
+    // Amplitude also scales with current speed so sprint reads as more
+    // energetic than walk. Use velocity here (not state.getSpeed) so the
+    // bob fades as the player decelerates after releasing keys.
+    const horizSpeed = Math.hypot(this.body.velocity.x, this.body.velocity.z);
+    const ampScale = horizSpeed / this.bobReferenceSpeed;
+    const phase = this.bobTime * Math.PI * 2;
+    this.headbobOffsetY = Math.abs(Math.sin(phase)) * this.bobAmplitude * ampScale * this.bobIntensity;
   }
 
   private updateCrosshair() {

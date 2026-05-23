@@ -111,17 +111,33 @@ export class BulletController {
 
     const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 8, 8), new THREE.MeshBasicMaterial({ color: bullet.color }));
 
-    // The intersection point is in world space — convert to the target's
-    // local space so it stays glued to the surface as the target transforms.
-    const localHit = target.worldToLocal(intersection.point.clone());
-    sphere.position.copy(localHit);
+    // The marker is parented to `target`, so Three.js will multiply its
+    // transform by `target.matrixWorld` on render. If the target has a
+    // non-unit scale (the ground mesh, for instance, has scale = 10),
+    // the marker would render that much larger and the inset distance
+    // would be similarly stretched. We do all the geometry in world
+    // space first, then translate position into target-local space and
+    // apply an inverse-scale so the visible marker reads at true size
+    // regardless of how the target's local space is stretched.
 
-    // Inset the marker very slightly along the inverse face normal so it sits
-    // in the surface rather than floating just above it. Falls back gracefully
-    // if the intersection didn't come with a face normal.
-    if (intersection.face?.normal) {
-      sphere.position.addScaledVector(intersection.face.normal, -radius * 0.25);
-    }
+    // World-space surface normal: transform the local face normal by the
+    // target's world matrix. Falls back to "up" if no face is reported.
+    const worldNormal = intersection.face?.normal
+      ? intersection.face.normal.clone().transformDirection(target.matrixWorld).normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    // World-space marker position: hit point inset slightly along -normal
+    // so the sphere sits flush with the surface rather than perched on it.
+    const worldPos = intersection.point.clone().addScaledVector(worldNormal, -radius * 0.25);
+
+    // Translate world position into target's local frame for storage.
+    sphere.position.copy(target.worldToLocal(worldPos));
+
+    // Counter the target's world scale so the geometry renders at its
+    // true bullet caliber regardless of parent stretch.
+    const worldScale = new THREE.Vector3();
+    target.getWorldScale(worldScale);
+    sphere.scale.set(1 / worldScale.x, 1 / worldScale.y, 1 / worldScale.z);
 
     target.add(sphere);
     this.bulletHoles.push({ sphere, timestamp: Date.now() });
@@ -130,15 +146,14 @@ export class BulletController {
   private applyForce(intersection: THREE.Intersection, bullet: Bullet) {
     if (!(intersection.object instanceof RigidBody)) return;
 
-    // Polymorphic — any RigidBody subclass with a dynamic body (Box, Ball)
-    // moves; static ones (e.g. a static plinth Box) implement applyImpulse
+    // Plain centre-of-mass impulse — no off-centre application, so CANNON
+    // doesn't induce extra rotation. Boxes still tumble naturally when they
+    // collide with each other or the ground; we just don't add cartoonish
+    // spin from the bullet itself. Static plinth bodies override applyImpulse
     // as a no-op and shrug it off.
     const direction = new THREE.Vector3();
     this.camera.getWorldDirection(direction);
     const impulse = new CANNON.Vec3(direction.x * bullet.damage, direction.y * bullet.damage, direction.z * bullet.damage);
-    // Applying at the impact point gives a rotational moment too — boxes
-    // spin off, the ball gets a tiny bit of english on it.
-    const worldPoint = new CANNON.Vec3(intersection.point.x, intersection.point.y, intersection.point.z);
-    intersection.object.applyImpulse(impulse, worldPoint);
+    intersection.object.applyImpulse(impulse);
   }
 }

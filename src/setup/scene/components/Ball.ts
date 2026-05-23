@@ -1,6 +1,8 @@
 import { RigidBody } from '@/src/abstract/RigidBody';
 import { MeshStandardMaterial, SphereGeometry } from 'three';
 import * as CANNON from 'cannon-es';
+import { Debug } from '@/src/setup/utils/common';
+import * as THREE from 'three';
 
 /**
  * A heavy sphere with full rigid-body physics — the bowling ball.
@@ -28,6 +30,11 @@ export class Ball extends RigidBody {
       linearDamping: 0.15, // slows rolling friction naturally
       angularDamping: 0.15,
     });
+
+    if (Debug.enabled()) {
+      this.add(new THREE.AxesHelper(1));
+      // this.add(new THREE.GridHelper(size, size * 10));
+    }
   }
 
   override applyImpulse(impulse: CANNON.Vec3, worldPoint?: CANNON.Vec3): void {
