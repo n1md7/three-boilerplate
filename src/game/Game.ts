@@ -133,4 +133,14 @@ export class Game {
   resume() {
     this.setState('Active');
   }
+
+  /**
+   * Restores the demo stage's dynamic bodies to their spawn poses and resets
+   * the player. Does NOT exit the paused state — the menu stays open so the
+   * player can review the controls or resume on their own terms.
+   */
+  resetScene() {
+    this.scene.resetWorld();
+    this.player.reset();
+  }
 }

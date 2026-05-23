@@ -297,6 +297,46 @@ button:focus {
   transform: translateY(0);
 }
 
+/* Secondary action — styled like a text link, no chrome at all. Sits as
+   a quiet "I want to undo the world" affordance under the primary button. */
+.btn-secondary,
+.menu .reset {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  margin-top: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration-color: rgba(255, 255, 255, 0.12);
+  text-underline-offset: 4px;
+  transition:
+    color 160ms var(--ease),
+    text-decoration-color 160ms var(--ease);
+}
+
+.btn-secondary:hover,
+.menu .reset:hover {
+  color: var(--ink);
+  text-decoration-color: var(--ink-dim);
+}
+
+.btn-secondary:active,
+.menu .reset:active {
+  color: var(--ink-dim);
+}
+
+/* Stack pause-menu buttons vertically: Resume on top, Reset link below. */
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Controls hint list in the pause menu
    ───────────────────────────────────────────────────────────── */

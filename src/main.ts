@@ -11,6 +11,7 @@ const assetsLoaded = AssetsLoaded.then(extractAssets);
 assetsLoaded.catch(console.error);
 const game = new Game();
 ui.menu.resume.click(() => game.resume());
+ui.menu.reset.click(() => game.resetScene());
 ui.start.click(() => {
   assetsLoaded
     .then(async () => {

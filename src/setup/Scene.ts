@@ -9,6 +9,17 @@ import { Ball } from '@/src/setup/scene/components/Ball';
 import * as CANNON from 'cannon-es';
 
 export default class Scene extends ThreeScene {
+  /**
+   * Initial-pose snapshots of every dynamic body added to the scene. Used by
+   * resetWorld() to send the demo stage back to its starting state when the
+   * player clicks Reset on the pause menu.
+   */
+  private readonly resetSnapshots: Array<{
+    body: CANNON.Body;
+    position: CANNON.Vec3;
+    quaternion: CANNON.Quaternion;
+  }> = [];
+
   constructor(
     private readonly gui: GUI,
     private readonly physicsWorld: CANNON.World,
@@ -17,6 +28,30 @@ export default class Scene extends ThreeScene {
     super();
 
     this.background = new Color('#1f1e1e');
+  }
+
+  /**
+   * Restores every dynamic body to its spawn pose and zeroes its velocity.
+   * Bullet-hole markers are children of the affected meshes, so they ride
+   * along — no separate cleanup needed unless you want to wipe them too.
+   */
+  resetWorld() {
+    for (const { body, position, quaternion } of this.resetSnapshots) {
+      body.position.copy(position);
+      body.quaternion.copy(quaternion);
+      body.velocity.set(0, 0, 0);
+      body.angularVelocity.set(0, 0, 0);
+      body.wakeUp(); // make sure CANNON re-evaluates contacts
+    }
+  }
+
+  /** Records the body's current pose as its reset point. */
+  private snapshot(body: CANNON.Body) {
+    this.resetSnapshots.push({
+      body,
+      position: body.position.clone(),
+      quaternion: body.quaternion.clone(),
+    });
   }
 
   addFog() {
@@ -199,6 +234,7 @@ export default class Scene extends ThreeScene {
     ball.receiveShadow = true;
     this.physicsWorld.addBody(ball.body);
     this.add(ball);
+    this.snapshot(ball.body);
   }
 
   /** Common construction step for every cube. */
@@ -211,5 +247,6 @@ export default class Scene extends ThreeScene {
     box.receiveShadow = true;
     this.physicsWorld.addBody(box.body);
     this.add(box);
+    this.snapshot(box.body);
   }
 }
