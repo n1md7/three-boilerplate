@@ -1,6 +1,7 @@
-import { AnimationAction, AnimationMixer, LoopOnce, Vector3 } from 'three';
+import { AnimationMixer, Vector3 } from 'three';
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Bullet } from '@/src/first-person/components/Bullet';
+import { TimedAnimation } from '@/src/first-person/weapons/TimedAnimation';
 import Camera from '@/src/setup/Camera';
 import GUI from 'lil-gui';
 
@@ -10,21 +11,21 @@ export type AnimationNameMap = Record<AnimationName, string>;
 
 export abstract class Weapon {
   public abstract readonly bullet: Bullet;
-  protected readonly shootAnimation: AnimationAction;
-  protected readonly reloadAnimation: AnimationAction;
-  protected readonly idleAnimation: AnimationAction;
-  protected readonly walkAnimation: AnimationAction;
-  protected readonly animationMixer: AnimationMixer;
-  protected abstract weaponOffset: Vector3; // Offset of weapon from camera
-  protected abstract weaponRotation: Vector3; // Rotation of weapon
 
-  // Tunables — encapsulated. Mutate only through the public setX() methods,
-  // which keep animation durations in sync. lil-gui binds to a getter/setter
-  // proxy built in `addGui`, so the panel works without exposing these fields.
-  private _fireRate = 1000; // ms between shots
-  private _reloadTime = 3000; // ms
-  private _magazineSize = 7;
-  private _bullets = 7;
+  // Animations are wrapped in TimedAnimation so their playback duration always
+  // matches the requested fire-rate / reload-time, regardless of the underlying
+  // GLTF clip's natural length.
+  protected readonly shootAnimation: TimedAnimation;
+  protected readonly reloadAnimation: TimedAnimation;
+  protected readonly idleAnimation: TimedAnimation;
+  protected readonly walkAnimation: TimedAnimation;
+
+  protected readonly animationMixer: AnimationMixer;
+  protected abstract weaponOffset: Vector3;
+  protected abstract weaponRotation: Vector3;
+
+  // Tunables — encapsulated. Mutate via the public setX() methods. lil-gui
+  // binds to a getter/setter proxy built in addGui, so the panel works
   private _type: FireMode = 'semi';
   private lastShot = Date.now();
   private reloading = false;
@@ -35,34 +36,47 @@ export abstract class Weapon {
   ) {
     this.animationMixer = new AnimationMixer(weapon.scene);
 
-    this.shootAnimation = this.getAnimation(animationNames.fire);
-    this.reloadAnimation = this.getAnimation(animationNames.reload);
-    this.idleAnimation = this.getAnimation(animationNames.idle);
-    this.walkAnimation = this.getAnimation(animationNames.walk);
+    this.shootAnimation = new TimedAnimation(this.getAnimation(animationNames.fire));
+    this.reloadAnimation = new TimedAnimation(this.getAnimation(animationNames.reload));
+    this.idleAnimation = new TimedAnimation(this.getAnimation(animationNames.idle));
+    this.walkAnimation = new TimedAnimation(this.getAnimation(animationNames.walk));
   }
 
-  // Read-only public accessors — callers can observe, only the setters mutate.
+  // without these fields ever escaping the class.
+  private _fireRate = 1000; // ms between shots
+
+  // Read-only public accessors.
   get fireRate(): number {
     return this._fireRate;
   }
+
+  private _reloadTime = 3000; // ms
+
   get reloadTime(): number {
     return this._reloadTime;
   }
+
+  private _magazineSize = 7;
+
   get magazineSize(): number {
     return this._magazineSize;
   }
+
+  private _bullets = 7;
+
   get bullets(): number {
     return this._bullets;
   }
+
   get isSemiAutomatic(): boolean {
     return this._type === 'semi';
   }
+
   get isAutomatic(): boolean {
     return this._type === 'auto';
   }
 
   get effectiveDistance(): number {
-    // Perhaps the grid helper is showing the wrong block size — empirically /2 works.
     return this.bullet.distance / 2;
   }
 
@@ -82,9 +96,11 @@ export abstract class Weapon {
     this._bullets--;
     this.lastShot = Date.now();
 
-    this.resetAnimations();
+    // Recompute timing right at play-time so the animation lasts EXACTLY
+    // the current fire rate. Any GUI tweak to fireRate is honoured on the
+    // very next shot without needing manual re-sync.
     this.stopAnimations();
-    this.shootAnimation.play();
+    this.shootAnimation.playFor(this._fireRate);
 
     return true;
   }
@@ -94,9 +110,9 @@ export abstract class Weapon {
     if (this._bullets === this._magazineSize) return false;
 
     this.reloading = true;
-    this.resetAnimations();
     this.stopAnimations();
-    this.reloadAnimation.play();
+    // Reload animation retimes to whatever the configured reload duration is.
+    this.reloadAnimation.playFor(this._reloadTime);
 
     setTimeout(() => {
       this._bullets = this._magazineSize;
@@ -126,17 +142,18 @@ export abstract class Weapon {
     this._magazineSize = magazineSize;
   }
 
+  /**
+   * Length of the reload animation in milliseconds. Stored only — actual
+   * timeScale is recomputed every time the animation plays, so calling this
+   * mid-reload doesn't affect the in-flight animation but will affect the next.
+   */
   setReloadTime(reloadTime: number) {
     this._reloadTime = reloadTime;
-    this.reloadAnimation.setDuration(reloadTime / 1000);
-    this.reloadAnimation.setLoop(LoopOnce, 1);
   }
 
-  /** Delay between shots in milliseconds. Lower = faster. */
+  /** Delay between shots, ms. Lower = faster. Animation retimes to match. */
   setFireRate(fireRate: number) {
     this._fireRate = fireRate;
-    this.shootAnimation.setDuration(fireRate / 1000);
-    this.shootAnimation.setLoop(LoopOnce, 1);
   }
 
   adjustBy(camera: Camera): void {
@@ -151,44 +168,34 @@ export abstract class Weapon {
     this.weapon.scene.rotateZ(this.weaponRotation.z);
   }
 
-  /**
-   * Builds a proxy object exposing getter/setter pairs that lil-gui can bind to.
-   * The private fields stay private — all mutations flow through the public
-   * setX() methods so animation durations and side-effects stay in sync.
-   */
   protected addGui(gui: GUI): void {
     const properties = gui.addFolder('Properties');
-    // `self` captured so the proxy getters/setters can reflect on private fields.
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
-    // Closure-bound proxy so lil-gui can read/write through accessors — the
-    // private fields on the class stay encapsulated.
-    const tunables = {
+    const ctx = this;
+    const tunables = new (class {
       get fireRate(): number {
-        return self._fireRate;
-      },
+        return ctx._fireRate;
+      }
       set fireRate(v: number) {
-        self.setFireRate(v);
-      },
+        ctx.setFireRate(v);
+      }
       get reloadTime(): number {
-        return self._reloadTime;
-      },
+        return ctx._reloadTime;
+      }
       set reloadTime(v: number) {
-        self.setReloadTime(v);
-      },
+        ctx.setReloadTime(v);
+      }
       get magazineSize(): number {
-        return self._magazineSize;
-      },
+        return ctx._magazineSize;
+      }
       set magazineSize(v: number) {
-        self.setMagazineSize(v);
-      },
-    };
+        ctx.setMagazineSize(v);
+      }
+    })();
 
-    properties.add(tunables, 'fireRate').step(1).min(100).max(2000).name('fireRate (ms)');
+    properties.add(tunables, 'fireRate').step(1).min(50).max(2000).name('fireRate (ms)');
     properties.add(tunables, 'reloadTime').step(1).min(100).max(7500).name('reloadTime (ms)');
     properties.add(tunables, 'magazineSize').step(1).min(7).max(200).name('magazineSize');
 
-    // Vector3 fields are protected and we are inside the class — direct binding is fine.
     const offset = gui.addFolder('Offset');
     offset.add(this.weaponOffset, 'x').step(0.01).min(-8).max(8);
     offset.add(this.weaponOffset, 'y').step(0.01).min(-8).max(8);
@@ -211,13 +218,6 @@ export abstract class Weapon {
     return Date.now() - this.lastShot;
   }
 
-  private resetAnimations() {
-    this.shootAnimation.reset();
-    this.reloadAnimation.reset();
-    this.idleAnimation.reset();
-    this.walkAnimation.reset();
-  }
-
   private stopAnimations() {
     this.shootAnimation.stop();
     this.reloadAnimation.stop();
@@ -225,7 +225,7 @@ export abstract class Weapon {
     this.walkAnimation.stop();
   }
 
-  private getAnimation(name: string): AnimationAction {
+  private getAnimation(name: string) {
     const animation = this.weapon.animations.find((a) => a.name === name);
     if (!animation) throw new Error(`Animation "${name}" not found`);
     return this.animationMixer.clipAction(animation);
