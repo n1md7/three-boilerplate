@@ -34,6 +34,10 @@ export class Character {
 
   private readonly body: Capsule;
   private readonly velocity: Vector3;
+  /** Per-frame accumulator for move input — Move commands push into this,
+   *  then update() clamps its length to ≤1 so diagonals aren't faster than
+   *  cardinal moves. */
+  private readonly inputVector: Vector3;
 
   private readonly commands: CharacterCommands;
   private readonly _states: CharacterStates;
@@ -58,6 +62,7 @@ export class Character {
     const end = new Vector3(0, 1.75, 0);
     this.body = new Capsule(start, end, 0.35);
     this.velocity = new Vector3();
+    this.inputVector = new Vector3();
     this.body.translate(spawnPoint);
 
     this.commands = new CharacterCommands();
@@ -75,11 +80,15 @@ export class Character {
 
   // ───── Public API for Command objects ─────
 
-  /** Add a horizontal movement contribution scaled by current state speed. */
-  move(direction: Vector3, delta: number): void {
-    const speed = this._states.currentState.getSpeed();
-    const factor = this.isGrounded ? 1.0 : this.airControlFactor;
-    this.velocity.add(direction.multiplyScalar(speed * factor * delta));
+  /**
+   * Accumulate a raw movement input vector. Move commands push their
+   * (direction × side-multiplier) here every frame; Character clamps the
+   * combined input to length ≤1 in update() so diagonal movement isn't
+   * faster than cardinal movement. The input is then scaled by the current
+   * state's speed × delta and added to velocity.
+   */
+  move(direction: Vector3): void {
+    this.inputVector.add(direction);
   }
 
   /** Apply a vertical impulse if grounded. */
@@ -138,12 +147,29 @@ export class Character {
     // State follows the active commands every frame.
     this.deriveState();
 
-    // Movement commands push contributions into velocity.
+    // Reset per-frame input, then let move commands fill it.
+    this.inputVector.set(0, 0, 0);
     this.commands.execute(delta);
+
+    // Clamp combined input length to ≤1 so that pressing W+D doesn't produce
+    // a 1.28-magnitude vector and thus faster diagonal movement. Cardinal
+    // weights (back 0.9, strafe 0.8) survive because they keep length <1.
+    const inputLenSq = this.inputVector.lengthSq();
+    if (inputLenSq > 1) this.inputVector.divideScalar(Math.sqrt(inputLenSq));
+
+    // Convert the clamped input into a velocity contribution.
+    const speed = this._states.currentState.getSpeed();
+    const factor = this.isGrounded ? 1.0 : this.airControlFactor;
+    this.velocity.addScaledVector(this.inputVector, speed * factor * delta);
 
     // Sub-step capsule physics for stable collisions at high speed.
     const subDelta = Math.min(0.05, delta) / this.sps;
     for (let step = 0; step < this.sps; step++) this.updateCharacter(subDelta);
+
+    // While airborne, hard-cap horizontal velocity to the natural ground
+    // terminal so repeated jumps can't slowly accelerate the character past
+    // the on-foot top speed. (Ground damping handles this for us when grounded.)
+    this.clampAirHorizontalSpeed();
 
     // Once-per-frame follow-the-camera updates.
     this.flashlight.adjustBy(this.camera);
@@ -154,6 +180,35 @@ export class Character {
   }
 
   // ───── Internals ─────
+
+  /**
+   * Cap horizontal speed while airborne to the natural ground terminal.
+   *
+   * Why this is needed: in air the movement contribution is scaled by
+   * airControlFactor (0.16) but damping is also reduced (×0.1). The damping
+   * reduction is larger than the input reduction, so the natural equilibrium
+   * velocity in air ends up *higher* than on the ground. Repeated jumping
+   * while holding a direction lets velocity creep up toward the air terminal.
+   * Clamping fixes that without changing ground feel — when grounded, normal
+   * damping is already tight enough to hold velocity at the natural cap.
+   */
+  private clampAirHorizontalSpeed() {
+    if (this.isGrounded) return;
+    const speed = this._states.currentState.getSpeed();
+    if (speed === 0) return; // idle — let damping decelerate naturally
+
+    // Natural ground terminal ≈ speed * delta / (1 - dampingRetention).
+    // With delta=1/60 and ground damping retention ≈ 0.88, that's ≈ speed * 0.139.
+    // Use a slightly looser cap (* 0.15) so we don't bite during normal play.
+    const maxHorizontal = speed * 0.15;
+    const horizSq = this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z;
+    const maxSq = maxHorizontal * maxHorizontal;
+    if (horizSq <= maxSq) return;
+
+    const scale = maxHorizontal / Math.sqrt(horizSq);
+    this.velocity.x *= scale;
+    this.velocity.z *= scale;
+  }
 
   private deriveState() {
     const isMoving = this.commands.hasKind('move');

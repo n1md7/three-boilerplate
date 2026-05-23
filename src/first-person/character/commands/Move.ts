@@ -29,11 +29,13 @@ export class Move extends Command {
     super(character, camera);
   }
 
-  override execute(delta: number): void {
+  override execute(_delta: number): void {
     const useZAxis = this.direction === 'forward' || this.direction === 'backward';
     const sign = this.direction === 'forward' || this.direction === 'right' ? 1 : -1;
     const vector = useZAxis ? this.getZAxisVector() : this.getXAxisVector();
 
-    this.character.move(vector.multiplyScalar(sign * SIDE_MULTIPLIER[this.direction]), delta);
+    // Push a raw input contribution. Character clamps the combined length to ≤1
+    // and applies speed × delta itself, so diagonals don't outpace straight moves.
+    this.character.move(vector.multiplyScalar(sign * SIDE_MULTIPLIER[this.direction]));
   }
 }
