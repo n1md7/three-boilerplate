@@ -1,17 +1,20 @@
-import { ACESFilmicToneMapping, VSMShadowMap, WebGLRenderer } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, WebGLRenderer } from 'three';
 
 export default class Renderer extends WebGLRenderer {
   constructor() {
     super({ canvas: document.querySelector('#canvas')!, antialias: true, depth: true });
+
+    // PCFShadowMap works for every light type (PointLight included). VSM logs
+    // a warning per PointLight per frame and silently skips them; PCFSoft has
+    // been deprecated by Three.js and falls back to PCF anyway.
     this.shadowMap.enabled = true;
-    this.setSize(window.innerWidth, window.innerHeight);
-    // this.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.shadowMap.type = VSMShadowMap;
-    this.shadowMap.enabled = true;
+    this.shadowMap.type = PCFShadowMap;
+
     this.toneMapping = ACESFilmicToneMapping;
-    // this.useLegacyLights = false;
-    // Limit pixel ratio, 2 is more than enough
+    this.setSize(window.innerWidth, window.innerHeight);
+    // Cap pixel ratio at 2 — anything higher costs a lot of fillrate for no
+    // visible benefit on typical displays.
     this.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.autoClear = false; // To allow 2nd scene to render
+    this.autoClear = false; // The weapon scene is rendered as a second pass.
   }
 }

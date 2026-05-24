@@ -55,9 +55,4 @@ export class TimedAnimation {
   isFinished(): boolean {
     return !this.action.isRunning() && this.action.time >= this.clipDuration;
   }
-
-  /** Read-only access to the underlying action for advanced cases. */
-  get underlying(): AnimationAction {
-    return this.action;
-  }
 }

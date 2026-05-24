@@ -53,8 +53,8 @@ export class WeaponController {
   }
 
   setup() {
-    this.weapons.push(new DesertEagle(Assets.Weapons.DesertEagle, this.gui.addFolder('Desert Eagle')));
-    this.weapons.push(new M60(Assets.Weapons.M60, this.gui.addFolder('M60')));
+    this.weapons.push(new DesertEagle(Assets.Weapons.DesertEagle, this.gui));
+    this.weapons.push(new M60(Assets.Weapons.M60, this.gui));
 
     // Weapon scene needs its own ambient + hemisphere fill so the model is
     // visible from every angle (physical light units make a single PointLight

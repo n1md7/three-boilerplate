@@ -5,75 +5,108 @@ import { TimedAnimation } from '@/src/first-person/weapons/TimedAnimation';
 import Camera from '@/src/setup/Camera';
 import GUI from 'lil-gui';
 
-export type AnimationName = 'fire' | 'reload' | 'idle' | 'walk';
-export type FireMode = 'auto' | 'semi';
-export type AnimationNameMap = Record<AnimationName, string>;
+type AnimationName = 'fire' | 'reload' | 'idle' | 'walk';
+type FireMode = 'auto' | 'semi';
+type AnimationNameMap = Record<AnimationName, string>;
+type GuiNumberProperties = {
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+};
+type GunConfiguration = {
+  fireRate: GuiNumberProperties;
+  reloadTime: GuiNumberProperties;
+  magazineSize: GuiNumberProperties;
+  bullets: GuiNumberProperties;
+};
+type GunProperties = {
+  fireRate: number;
+  reloadTime: number;
+  magazineSize: number;
+  bullets: number;
+  type: FireMode;
+};
 
 export abstract class Weapon {
-  public abstract readonly bullet: Bullet;
+  /**
+   * What kind of bullets are being shot.
+   *
+   * It is needed for size and force it is generating against targets
+   */
+  readonly bullet: Bullet;
+
+  private weaponOffset: Vector3;
+  private weaponRotation: Vector3;
+
+  private readonly weapon: GLTF;
 
   // Animations are wrapped in TimedAnimation so their playback duration always
   // matches the requested fire-rate / reload-time, regardless of the underlying
   // GLTF clip's natural length.
-  protected readonly shootAnimation: TimedAnimation;
-  protected readonly reloadAnimation: TimedAnimation;
-  protected readonly idleAnimation: TimedAnimation;
-  protected readonly walkAnimation: TimedAnimation;
+  private readonly shootAnimation: TimedAnimation;
+  private readonly reloadAnimation: TimedAnimation;
+  private readonly idleAnimation: TimedAnimation;
+  private readonly walkAnimation: TimedAnimation;
 
-  protected readonly animationMixer: AnimationMixer;
-  protected abstract weaponOffset: Vector3;
-  protected abstract weaponRotation: Vector3;
+  private readonly animationMixer: AnimationMixer;
 
   // Tunables — encapsulated. Mutate via the public setX() methods. lil-gui
   // binds to a getter/setter proxy built in addGui, so the panel works
-  private _type: FireMode = 'semi';
+  private type: FireMode = 'semi';
   private lastShot = Date.now();
   private reloading = false;
 
+  private fireRate = 1000; // ms between shots
+  private reloadTime = 3000; // ms
+  private magazineSize = 7;
+  private bullets = 7;
+
   protected constructor(
-    protected readonly weapon: GLTF,
+    weapon: GLTF,
+    gui: GUI,
     animationNames: AnimationNameMap,
+    gunConfiguration: GunConfiguration,
+    bullet: Bullet,
+    weaponOffset: Vector3,
+    weaponRotation: Vector3,
   ) {
+    this.weapon = weapon;
+    this.bullet = bullet;
+    this.weaponOffset = weaponOffset;
+    this.weaponRotation = weaponRotation;
     this.animationMixer = new AnimationMixer(weapon.scene);
 
     this.shootAnimation = new TimedAnimation(this.getAnimation(animationNames.fire));
     this.reloadAnimation = new TimedAnimation(this.getAnimation(animationNames.reload));
     this.idleAnimation = new TimedAnimation(this.getAnimation(animationNames.idle));
     this.walkAnimation = new TimedAnimation(this.getAnimation(animationNames.walk));
-  }
 
-  // without these fields ever escaping the class.
-  private _fireRate = 1000; // ms between shots
+    // Seed the live fields from the supplied configuration. Without this the
+    // class-level defaults (fireRate=1000, etc.) would silently win until the
+    // user moved a slider — i.e. the GUI would display the configured value
+    // but the gun would behave with the hardcoded default.
+    this.fireRate = gunConfiguration.fireRate.value;
+    this.reloadTime = gunConfiguration.reloadTime.value;
+    this.magazineSize = gunConfiguration.magazineSize.value;
+    this.bullets = gunConfiguration.bullets.value;
 
-  // Read-only public accessors.
-  get fireRate(): number {
-    return this._fireRate;
-  }
+    // Bind every setter that lil-gui will invoke as a bare function — without
+    // this, `this` would be undefined inside the setter (strict mode) and the
+    // assignment would silently throw on slider change.
+    this.setFireRate = this.setFireRate.bind(this);
+    this.setReloadTime = this.setReloadTime.bind(this);
+    this.setMagazineSize = this.setMagazineSize.bind(this);
 
-  private _reloadTime = 3000; // ms
-
-  get reloadTime(): number {
-    return this._reloadTime;
-  }
-
-  private _magazineSize = 7;
-
-  get magazineSize(): number {
-    return this._magazineSize;
-  }
-
-  private _bullets = 7;
-
-  get bullets(): number {
-    return this._bullets;
+    this.configure(gui, gunConfiguration);
   }
 
   get isSemiAutomatic(): boolean {
-    return this._type === 'semi';
+    return this.type === 'semi';
   }
 
   get isAutomatic(): boolean {
-    return this._type === 'auto';
+    return this.type === 'auto';
   }
 
   get effectiveDistance(): number {
@@ -90,34 +123,34 @@ export abstract class Weapon {
 
   shoot(): boolean {
     if (this.reloading) return false;
-    if (this._bullets <= 0) return this.reload();
-    if (this.getShootDelta() < this._fireRate) return false;
+    if (this.bullets <= 0) return this.reload();
+    if (this.getShootDelta() < this.fireRate) return false;
 
-    this._bullets--;
+    this.bullets--;
     this.lastShot = Date.now();
 
     // Recompute timing right at play-time so the animation lasts EXACTLY
     // the current fire rate. Any GUI tweak to fireRate is honoured on the
     // very next shot without needing manual re-sync.
     this.stopAnimations();
-    this.shootAnimation.playFor(this._fireRate);
+    this.shootAnimation.playFor(this.fireRate);
 
     return true;
   }
 
   reload(): boolean {
     if (this.reloading) return false;
-    if (this._bullets === this._magazineSize) return false;
+    if (this.bullets === this.magazineSize) return false;
 
     this.reloading = true;
     this.stopAnimations();
     // Reload animation retimes to whatever the configured reload duration is.
-    this.reloadAnimation.playFor(this._reloadTime);
+    this.reloadAnimation.playFor(this.reloadTime);
 
     setTimeout(() => {
-      this._bullets = this._magazineSize;
+      this.bullets = this.magazineSize;
       this.reloading = false;
-    }, this._reloadTime);
+    }, this.reloadTime);
 
     return true;
   }
@@ -127,7 +160,7 @@ export abstract class Weapon {
   }
 
   setBullets(bullets: number) {
-    this._bullets = bullets;
+    this.bullets = bullets;
   }
 
   setScale(scale: number) {
@@ -135,11 +168,11 @@ export abstract class Weapon {
   }
 
   setType(type: FireMode) {
-    this._type = type;
+    this.type = type;
   }
 
   setMagazineSize(magazineSize: number) {
-    this._magazineSize = magazineSize;
+    this.magazineSize = magazineSize;
   }
 
   /**
@@ -148,12 +181,12 @@ export abstract class Weapon {
    * mid-reload doesn't affect the in-flight animation but will affect the next.
    */
   setReloadTime(reloadTime: number) {
-    this._reloadTime = reloadTime;
+    this.reloadTime = reloadTime;
   }
 
   /** Delay between shots, ms. Lower = faster. Animation retimes to match. */
   setFireRate(fireRate: number) {
-    this._fireRate = fireRate;
+    this.fireRate = fireRate;
   }
 
   adjustBy(camera: Camera): void {
@@ -168,54 +201,118 @@ export abstract class Weapon {
     this.weapon.scene.rotateZ(this.weaponRotation.z);
   }
 
-  protected addGui(gui: GUI): void {
-    const properties = gui.addFolder('Properties');
-    const ctx = this;
-    const tunables = new (class {
-      get fireRate(): number {
-        return ctx._fireRate;
-      }
-      set fireRate(v: number) {
-        ctx.setFireRate(v);
-      }
-      get reloadTime(): number {
-        return ctx._reloadTime;
-      }
-      set reloadTime(v: number) {
-        ctx.setReloadTime(v);
-      }
-      get magazineSize(): number {
-        return ctx._magazineSize;
-      }
-      set magazineSize(v: number) {
-        ctx.setMagazineSize(v);
-      }
-    })();
+  protected getShootDelta() {
+    return Date.now() - this.lastShot;
+  }
 
-    properties.add(tunables, 'fireRate').step(1).min(50).max(2000).name('fireRate (ms)');
-    properties.add(tunables, 'reloadTime').step(1).min(100).max(7500).name('reloadTime (ms)');
-    properties.add(tunables, 'magazineSize').step(1).min(7).max(200).name('magazineSize');
+  private configure(gui: GUI, props: GunConfiguration): void {
+    this.configureGuiProperties(gui, props);
 
-    const offset = gui.addFolder('Offset');
-    offset.add(this.weaponOffset, 'x').step(0.01).min(-8).max(8);
-    offset.add(this.weaponOffset, 'y').step(0.01).min(-8).max(8);
-    offset.add(this.weaponOffset, 'z').step(0.01).min(-8).max(8);
-
-    const rotation = gui.addFolder('Rotation');
-    rotation.add(this.weaponRotation, 'x').step(0.01).min(-Math.PI).max(7);
-    rotation.add(this.weaponRotation, 'y').step(0.01).min(-Math.PI).max(7);
-    rotation.add(this.weaponRotation, 'z').step(0.01).min(-Math.PI).max(7);
-
-    const scale = gui.addFolder('Scale');
-    scale.add(this.weapon.scene.scale, 'x').step(0.01).min(0.1).max(4);
-    scale.add(this.weapon.scene.scale, 'y').step(0.01).min(0.1).max(4);
-    scale.add(this.weapon.scene.scale, 'z').step(0.01).min(0.1).max(4);
+    this.configureGuiOffset(gui);
+    this.configureRotation(gui);
+    this.configureScale(gui);
 
     gui.close();
   }
 
-  protected getShootDelta() {
-    return Date.now() - this.lastShot;
+  private configureGuiProperties(gui: GUI, props: GunConfiguration) {
+    const properties = gui.addFolder('Properties');
+    const state: GunProperties = {
+      bullets: 0,
+      type: 'semi',
+      fireRate: props.fireRate.value,
+      reloadTime: props.reloadTime.value,
+      magazineSize: props.magazineSize.value,
+    };
+
+    properties
+      .add(state, 'fireRate', props.fireRate.min, props.fireRate.max, props.fireRate.step)
+      .name('Fire rate (ms)')
+      .onChange(this.setFireRate);
+
+    properties
+      .add(state, 'reloadTime', props.reloadTime.min, props.reloadTime.max, props.reloadTime.step)
+      .name('Reload Time (ms)')
+      .onChange(this.setReloadTime);
+
+    properties
+      .add(state, 'magazineSize', props.magazineSize.min, props.magazineSize.max, props.magazineSize.step)
+      .name('Magazine size')
+      .onChange(this.setMagazineSize);
+
+    return properties;
+  }
+
+  private configureGuiOffset(gui: GUI) {
+    const offset = gui.addFolder('Offset');
+
+    const state = {
+      x: this.weaponOffset.x,
+      y: this.weaponOffset.y,
+      z: this.weaponOffset.z,
+    };
+
+    offset
+      .add(state, 'x')
+      .step(0.01)
+      .min(-8)
+      .max(8)
+      .onChange((x: number) => (this.weaponOffset.x = x));
+    offset
+      .add(state, 'y')
+      .step(0.01)
+      .min(-8)
+      .max(8)
+      .onChange((y: number) => (this.weaponOffset.y = y));
+    offset
+      .add(state, 'z')
+      .step(0.01)
+      .min(-8)
+      .max(8)
+      .onChange((z: number) => (this.weaponOffset.z = z));
+
+    return offset;
+  }
+
+  private configureRotation(gui: GUI) {
+    const rotation = gui.addFolder('Rotation');
+
+    const state = {
+      x: this.weaponRotation.x,
+      y: this.weaponRotation.y,
+      z: this.weaponRotation.z,
+    };
+
+    rotation
+      .add(state, 'x')
+      .step(0.01)
+      .min(-Math.PI)
+      .max(7)
+      .onChange((x: number) => (this.weaponRotation.x = x));
+    rotation
+      .add(state, 'y')
+      .step(0.01)
+      .min(-Math.PI)
+      .max(7)
+      .onChange((y: number) => (this.weaponRotation.y = y));
+    rotation
+      .add(state, 'z')
+      .step(0.01)
+      .min(-Math.PI)
+      .max(7)
+      .onChange((z: number) => (this.weaponRotation.z = z));
+
+    return rotation;
+  }
+
+  private configureScale(gui: GUI) {
+    const scale = gui.addFolder('Scale');
+
+    scale.add(this.weapon.scene.scale, 'x').step(0.01).min(0.1).max(4);
+    scale.add(this.weapon.scene.scale, 'y').step(0.01).min(0.1).max(4);
+    scale.add(this.weapon.scene.scale, 'z').step(0.01).min(0.1).max(4);
+
+    return scale;
   }
 
   private stopAnimations() {
@@ -227,7 +324,9 @@ export abstract class Weapon {
 
   private getAnimation(name: string) {
     const animation = this.weapon.animations.find((a) => a.name === name);
+
     if (!animation) throw new Error(`Animation "${name}" not found`);
+
     return this.animationMixer.clipAction(animation);
   }
 }
